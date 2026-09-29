@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="60%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#050B14"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#60A5FA"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+  </defs>
+
+  <!-- Background with iOS squircle shape -->
+  <rect width="512" height="512" rx="115" fill="url(#bg)"/>
+
+  <!-- Subtle glowing highway track -->
+  <path d="M 80 380 Q 256 300 432 380" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="40" stroke-linecap="round"/>
+
+  <!-- Car Icon Body -->
+  <g filter="url(#shadow)">
+    <!-- Car body base -->
+    <rect x="136" y="220" width="240" height="90" rx="30" fill="#FFFFFF"/>
+    <!-- Car roof -->
+    <path d="M 176 220 L 210 145 C 215 135 228 130 240 130 L 272 130 C 284 130 297 135 302 145 L 336 220 Z" fill="#FFFFFF"/>
+    <!-- Windshield -->
+    <path d="M 188 215 L 216 155 C 220 148 226 145 234 145 L 278 145 C 286 145 292 148 296 155 L 324 215 Z" fill="#0284C7"/>
+    <!-- Car center divider -->
+    <rect x="252" y="145" width="8" height="70" fill="#FFFFFF"/>
+    <!-- Headlights -->
+    <rect x="145" y="240" width="20" height="24" rx="8" fill="#FBBF24"/>
+    <rect x="347" y="240" width="20" height="24" rx="8" fill="#FBBF24"/>
+    <!-- Wheels -->
+    <circle cx="190" cy="310" r="32" fill="#050B14"/>
+    <circle cx="190" cy="310" r="16" fill="#38BDF8"/>
+    <circle cx="322" cy="310" r="32" fill="#050B14"/>
+    <circle cx="322" cy="310" r="16" fill="#38BDF8"/>
+  </g>
+
+  <!-- Euro Profit Badge -->
+  <g filter="url(#shadow)">
+    <circle cx="360" cy="130" r="54" fill="url(#accent)"/>
+    <text x="360" y="152" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif" font-size="64" font-weight="900" fill="#070D18" text-anchor="middle">€</text>
+  </g>
+
+  <!-- Route indicator text PN - BRNO -->
+  <text x="256" y="420" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="900" fill="#FFFFFF" letter-spacing="3" text-anchor="middle" opacity="0.95">PN ⇄ BRNO</text>
+  <text x="256" y="450" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" fill="rgba(255,255,255,0.8)" letter-spacing="1" text-anchor="middle">SPOLUJAZDA</text>
+</svg>

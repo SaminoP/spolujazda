@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Spolujazda PN ⇄ Brno</title>
+  
+  <!-- iOS PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Spolujazda">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+  
+  <!-- Web Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="header-icon">🚗</div>
+      <div class="header-title">
+        <h1>Spolujazda</h1>
+        <div class="header-subtitle">Piešťany ⇄ Brno</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button type="button" class="cloud-badge" id="btn-cloud-modal" title="Nastavenia synchronizácie">☁️ Lokálny</button>
+      <div class="header-user" id="header-user-section" style="display: none;">
+        <span class="user-name-badge" id="current-user-name">👤 Používateľ</span>
+        <button type="button" class="btn-logout" id="btn-logout" title="Odhlásiť sa">Odhlásiť</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Auth Screen (Prihlásenie / Registrácia) -->
+  <div id="auth-screen" class="auth-wrapper">
+    <div class="auth-header">
+      <div class="auth-logo">🚗</div>
+      <h2>Spolujazda PN ⇄ Brno</h2>
+      <p>Prihlás sa alebo si vytvor účet pre svoju vlastnú databázu jázd</p>
+    </div>
+
+    <div class="card">
+      <div class="segmented-control" style="grid-template-columns: 1fr 1fr; margin-bottom: 16px;">
+        <button type="button" class="segment-btn active" id="auth-tab-login">Prihlásenie</button>
+        <button type="button" class="segment-btn" id="auth-tab-register">Nový účet</button>
+      </div>
+
+      <div id="auth-alert" class="auth-alert"></div>
+
+      <form id="auth-form" onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label" for="auth-username">Používateľské meno (Login)</label>
+          <div class="input-wrapper">
+            <input type="text" id="auth-username" class="input-field" placeholder="Zadaj prihlasovacie meno" required autocomplete="username" autocapitalize="none">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 12px;">
+          <label class="form-label" for="auth-password">Heslo</label>
+          <div class="input-wrapper">
+            <input type="password" id="auth-password" class="input-field" placeholder="Zadaj heslo" required autocomplete="current-password">
+          </div>
+        </div>
+
+        <div class="form-group" id="auth-confirm-group" style="display: none; margin-top: 12px;">
+          <label class="form-label" for="auth-password-confirm">Potvrdenie hesla</label>
+          <div class="input-wrapper">
+            <input type="password" id="auth-password-confirm" class="input-field" placeholder="Zopakuj heslo" autocomplete="new-password">
+          </div>
+        </div>
+
+        <button type="button" id="btn-auth-submit" class="btn-primary" style="margin-top: 18px;">
+          Prihlásiť sa
+        </button>
+        <div id="auth-test-hint" style="font-size: 12px; color: var(--text-secondary); text-align: center; margin-top: 12px; background: var(--accent-blue-bg); padding: 8px; border-radius: 10px; border: 1px solid var(--border-color);">
+          🔑 Testovací účet: <b>admin</b> &bull; Heslo: <b>admin</b>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <main class="container" id="app-main" style="display: none;">
+
+    <!-- ==================== TAB 1: KALKULAČKA JAZDY ==================== -->
+    <section id="tab-calc" class="tab-view active">
+      
+      <!-- Live Profit Banner Widget -->
+      <div id="profit-banner" class="profit-banner in-profit">
+        <div id="profit-status-text" class="profit-status-badge">🟢 VYZBIERANÉ ZA JAZDU</div>
+        <div id="profit-amount" class="profit-amount">+22.50 €</div>
+        <div class="profit-details-grid">
+          <div class="detail-item">
+            <span class="detail-label">Cena / osoba</span>
+            <span id="display-price-person" class="detail-value income">7.50 €</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Pasažieri</span>
+            <span id="display-passengers" class="detail-value">3 ľudia</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Vzdialenosť</span>
+            <span id="display-route-km" class="detail-value">150 km</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Trasa & Vzdialenosť -->
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">🛣️</span> Trasa a vzdialenosť
+        </div>
+
+        <div class="segmented-control" style="grid-template-columns: 1fr 1fr;">
+          <button type="button" class="segment-btn active" data-route="pn-brno">PN ➔ Brno</button>
+          <button type="button" class="segment-btn" data-route="brno-pn">Brno ➔ PN</button>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="trip-date">Dátum jazdy</label>
+            <div class="input-wrapper">
+              <input type="date" id="trip-date" class="input-field">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="trip-distance">
+              <span>Vzdialenosť</span>
+              <span class="form-subtext">🔒 fixná</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="trip-distance" class="input-field input-readonly" value="150" readonly tabindex="-1">
+              <span class="input-unit">km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Pasažieri & Príjmy -->
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">👥</span> Pasažieri a vyzbierané peniaze
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <span>Počet ľudí (plná trasa)</span>
+            <span class="form-subtext">(okrem šoféra)</span>
+          </label>
+          <div class="stepper-container" id="passengers-stepper-container">
+            <button type="button" id="btn-passenger-minus" class="stepper-btn">−</button>
+            <div id="stepper-passengers" class="stepper-value">3</div>
+            <button type="button" id="btn-passenger-plus" class="stepper-btn">+</button>
+          </div>
+        </div>
+
+        <!-- Voliteľná možnosť: Prázdna jazda bez pasažierov -->
+        <div class="form-group" style="margin-top: 10px;">
+          <label class="form-checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            <input type="checkbox" id="toggle-no-passengers" style="width: 18px; height: 18px; accent-color: var(--accent-blue); cursor: pointer;">
+            <span>🚗 Ísť sám / bez pasažierov (0 ľudí, 0 € zisk)</span>
+          </label>
+        </div>
+
+        <div class="grid-2" style="margin-top: 14px;">
+          <div class="form-group">
+            <label class="form-label" for="price-per-person">Cena na osobu</label>
+            <div class="input-wrapper">
+              <input type="number" id="price-per-person" class="input-field" value="7.50" min="0" step="0.5">
+              <span class="input-unit">€</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="total-passenger-fare">
+              <span>Spolu od ľudí</span>
+              <span class="form-subtext">⚡ automaticky</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="total-passenger-fare" class="input-field input-readonly" value="22.50" readonly tabindex="-1">
+              <span class="input-unit">€</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Voliteľná kolonka: Pasažieri, ktorí platili menej (kratšia trasa) -->
+        <div class="form-group" style="margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border-color);">
+          <label class="form-checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--accent-blue-light);">
+            <input type="checkbox" id="toggle-discount-passengers" style="width: 18px; height: 18px; accent-color: var(--accent-emerald); cursor: pointer;">
+            <span>➕ Pasažieri s nižšou sumou (kratšia trasa / skôr vysadení)</span>
+          </label>
+        </div>
+
+        <div id="discount-passengers-container" class="discount-passengers-box" style="display: none;">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="discount-passengers-count">Počet ľudí (menej)</label>
+              <div class="input-wrapper">
+                <input type="number" id="discount-passengers-count" class="input-field" value="1" min="1" max="6">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="discount-price-per-person">Suma za osobu</label>
+              <div class="input-wrapper">
+                <input type="number" id="discount-price-per-person" class="input-field" value="5.00" min="0" step="0.5">
+                <span class="input-unit">€</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 10px;">
+            <label class="form-label" for="discount-note">Miesto vysadenia / Poznámka (voliteľné)</label>
+            <div class="input-wrapper">
+              <input type="text" id="discount-note" class="input-field" placeholder="napr. Nové Mesto / Uherské Hradiště">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <button type="button" id="btn-save-trip" class="btn-primary">
+        <span>💾</span> Uložiť jazdu do histórie
+      </button>
+      <button type="button" id="btn-reset-trip" class="btn-secondary">
+        🔄 Vynulovať formulár
+      </button>
+    </section>
+
+    <!-- ==================== TAB 2: TANKOVANIE (ZVLÁŠŤ ZÁLOŽKA) ==================== -->
+    <section id="tab-fuel" class="tab-view">
+      
+      <!-- Fuel Overview Banner -->
+      <div class="profit-banner neutral" style="margin-bottom: 16px;">
+        <div class="profit-status-badge" style="background: var(--accent-blue-bg); color: var(--accent-blue-light);">
+          ⛽ EVIDENCIA TANKOVANIA
+        </div>
+        <div id="fuel-tab-total-spent" class="profit-amount" style="color: var(--accent-blue);">0.00 €</div>
+        <div class="profit-details-grid">
+          <div class="detail-item">
+            <span class="detail-label">Celkovo litrov</span>
+            <span id="fuel-tab-total-liters" class="detail-value">0.0 l</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Priemer cena</span>
+            <span id="fuel-tab-avg-price" class="detail-value">0.00 €/l</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Tankovaní</span>
+            <span id="fuel-tab-count" class="detail-value">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form: Nové tankovanie -->
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">⛽</span> Zapísať nové tankovanie
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="refuel-date">Dátum</label>
+            <div class="input-wrapper">
+              <input type="date" id="refuel-date" class="input-field">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="refuel-total-price">
+              <span>Suma spolu</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="refuel-total-price" class="input-field" placeholder="napr. 45" min="0" step="0.5">
+              <span class="input-unit">€</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 10px;">
+          <div class="form-group">
+            <label class="form-label" for="refuel-liters">Objem</label>
+            <div class="input-wrapper">
+              <input type="number" id="refuel-liters" class="input-field" placeholder="napr. 30" min="0" step="0.1">
+              <span class="input-unit">l</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="refuel-price-per-l">Cena za liter</label>
+            <div class="input-wrapper">
+              <input type="number" id="refuel-price-per-l" class="input-field" placeholder="1.55" min="0" step="0.01">
+              <span class="input-unit">€/l</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 10px;">
+          <div class="form-group">
+            <label class="form-label" for="refuel-station">Čerpačka / Miesto</label>
+            <div class="input-wrapper">
+              <input type="text" id="refuel-station" class="input-field" placeholder="napr. Slovnaft PN">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="refuel-odometer">Tachometer</label>
+            <div class="input-wrapper">
+              <input type="number" id="refuel-odometer" class="input-field" placeholder="km (voliteľné)">
+              <span class="input-unit">km</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" id="btn-save-refuel" class="btn-primary" style="margin-top: 14px;">
+          <span>⛽</span> Uložiť tankovanie
+        </button>
+      </div>
+
+      <!-- Prehľad natankovaní -->
+      <div class="card-title" style="margin-bottom: 12px; margin-top: 18px;">
+        <span class="icon">📜</span> Zoznam tankovaní
+      </div>
+      <div id="fuel-tab-list">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: SPOLOČNÁ HISTÓRIA ==================== -->
+    <section id="tab-history" class="tab-view">
+      <div class="card-title" style="margin-bottom: 12px;">
+        <span class="icon">📋</span> História aktivít
+      </div>
+
+      <!-- Filter Buttons -->
+      <div class="segmented-control" style="margin-bottom: 14px;">
+        <button type="button" class="segment-btn active" data-history-filter="all">Všetko</button>
+        <button type="button" class="segment-btn" data-history-filter="trips">🚗 Jazdy</button>
+        <button type="button" class="segment-btn" data-history-filter="fuel">⛽ Tankovanie</button>
+      </div>
+
+      <div id="history-list">
+        <!-- Rendered dynamically via app.js -->
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: ŠTATISTIKY ==================== -->
+    <section id="tab-stats" class="tab-view">
+      <div class="card-title" style="margin-bottom: 12px;">
+        <span class="icon">📊</span> Celkový prehľad & Peňaženka
+      </div>
+
+      <!-- Hlavný stav peňaženky -->
+      <div class="profit-banner in-profit" id="wallet-banner" style="margin-bottom: 16px;">
+        <div class="profit-status-badge">💰 CELKOVÁ PEŇAŽENKA</div>
+        <div id="stat-wallet-net" class="profit-amount">+0.00 €</div>
+        <div class="profit-details-grid">
+          <div class="detail-item">
+            <span class="detail-label">Vyzbierané od ľudí</span>
+            <span id="stat-total-income" class="detail-value income">+0.00 €</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Skutočné tankovania</span>
+            <span id="stat-total-refueled" class="detail-value expense">-0.00 €</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Zisk z jázd</span>
+            <span id="stat-trips-profit" class="detail-value">+0.00 €</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-box-label">Najazdené km</span>
+          <span id="stat-total-km" class="stat-box-value">0 km</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-box-label">Odvezených ľudí</span>
+          <span id="stat-total-passengers" class="stat-box-value">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-box-label">Počet jázd</span>
+          <span id="stat-total-trips" class="stat-box-value">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-box-label">Počet tankovaní</span>
+          <span id="stat-total-refuels-count" class="stat-box-value">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-box-label">Celkovo natankované</span>
+          <span id="stat-total-liters-all" class="stat-box-value">0.0 l</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-box-label">Priem. cena paliva</span>
+          <span id="stat-avg-fuel-price" class="stat-box-value">0.00 €/l</span>
+        </div>
+      </div>
+
+      <!-- Backup / Restore Card -->
+      <div class="card" style="margin-top: 16px;">
+        <div class="card-title">
+          <span class="icon">💾</span> Zálohovanie všetkých dát
+        </div>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
+          Tvoje dáta sú bezpečne uložené priamo v pamäti iPhonu. Tu si ich môžeš kedykoľvek stiahnuť ako zálohu.
+        </p>
+        <button type="button" id="btn-export-data" class="btn-secondary" style="margin-top: 0; margin-bottom: 10px;">
+          📥 Stiahnuť zálohu (JSON)
+        </button>
+        <label for="file-import-data" class="btn-secondary" style="display: block; text-align: center; cursor: pointer;">
+          📤 Obnoviť zo zálohy
+        </label>
+        <input type="file" id="file-import-data" accept=".json" style="display: none;">
+      </div>
+    </section>
+
+  </main>
+
+  <!-- iOS Bottom Tab Bar (4 Tabs) -->
+  <nav class="bottom-nav" id="app-nav" style="display: none;">
+    <button type="button" class="nav-tab active" data-tab="calc">
+      <span class="tab-icon">🧮</span>
+      <span>Jazda</span>
+    </button>
+    <button type="button" class="nav-tab" data-tab="fuel">
+      <span class="tab-icon">⛽</span>
+      <span>Tankovanie</span>
+    </button>
+    <button type="button" class="nav-tab" data-tab="history">
+      <span class="tab-icon">📋</span>
+      <span>História</span>
+    </button>
+    <button type="button" class="nav-tab" data-tab="stats">
+      <span class="tab-icon">📊</span>
+      <span>Prehľad</span>
+    </button>
+  </nav>
+
+  <!-- Cloud Setup Modal -->
+  <div class="modal-overlay" id="cloud-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>☁️ Cloud synchronizácia</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-cloud-modal">✕</button>
+      </div>
+
+      <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+        Pripojenie ku Google Firebase umožňuje prihlásiť sa a synchronizovať jazdy a tankovania medzi mobilom a počítačom v reálnom čase odkiaľkoľvek.
+      </div>
+
+      <div class="modal-step">
+        <b>1. Vytvor si bezplatný projekt:</b> Na <a href="https://console.firebase.google.com" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">console.firebase.google.com</a>.
+      </div>
+      <div class="modal-step">
+        <b>2. V projekte aktivuj:</b>
+        <br>&bull; <i>Authentication</i> &rarr; Email/Password
+        <br>&bull; <i>Firestore Database</i> &rarr; Create database (Test mode)
+      </div>
+      <div class="modal-step">
+        <b>3. Vlož vygenerovanú konfiguráciu:</b> (Projekt &rarr; Nastavenia &rarr; Všeobecné &rarr; Vaše aplikácie &rarr; Web)
+      </div>
+
+      <div class="form-group" style="margin-top: 10px;">
+        <label class="form-label" for="cloud-config-input">Vlož firebaseConfig (JSON alebo text):</label>
+        <textarea id="cloud-config-input" class="input-field" rows="6" style="font-family: monospace; font-size: 12px; resize: vertical;" placeholder='{\n  "apiKey": "AIzaSy...",\n  "projectId": "spolujazda-...",\n  "appId": "..."\n}'></textarea>
+      </div>
+
+      <button type="button" id="btn-save-cloud-config" class="btn-primary" style="margin-top: 12px;">
+        💾 Uložiť a pripojiť Cloud
+      </button>
+
+      <button type="button" id="btn-reset-cloud-config" class="btn-secondary" style="margin-top: 8px;">
+        ↩ Používať iba Lokálny režim
+      </button>
+    </div>
+  </div>
+
+  <!-- Edit Trip Modal -->
+  <div class="modal-overlay" id="edit-trip-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>✏️ Upraviť jazdu</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-edit-trip">✕</button>
+      </div>
+
+      <form id="edit-trip-form" onsubmit="return false;">
+        <input type="hidden" id="edit-trip-id">
+        <input type="hidden" id="edit-trip-docid">
+
+        <div class="form-group">
+          <label class="form-label">Trasa</label>
+          <div class="segmented-control" style="grid-template-columns: 1fr 1fr;" id="edit-trip-route-group">
+            <button type="button" class="segment-btn active" data-edit-route="pn-brno">PN ➔ Brno</button>
+            <button type="button" class="segment-btn" data-edit-route="brno-pn">Brno ➔ PN</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="edit-trip-date">Dátum</label>
+            <div class="input-wrapper">
+              <input type="date" id="edit-trip-date" class="input-field" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-trip-distance">Vzdialenosť</label>
+            <div class="input-wrapper">
+              <input type="number" id="edit-trip-distance" class="input-field input-readonly" value="150" readonly tabindex="-1">
+              <span class="input-unit">km</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 10px;">
+          <label class="form-checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            <input type="checkbox" id="edit-toggle-no-passengers" style="width: 18px; height: 18px; accent-color: var(--accent-blue); cursor: pointer;">
+            <span>🚗 Ísť sám / bez pasažierov (0 ľudí, 0 € zisk)</span>
+          </label>
+        </div>
+
+        <div id="edit-passengers-section">
+          <div class="grid-2" style="margin-top: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="edit-trip-passengers">Pasažieri (plná trasa)</label>
+              <div class="input-wrapper">
+                <input type="number" id="edit-trip-passengers" class="input-field" min="0" max="8" value="3">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-trip-price-person">Cena na osobu</label>
+              <div class="input-wrapper">
+                <input type="number" id="edit-trip-price-person" class="input-field" min="0" step="0.5" value="7.50">
+                <span class="input-unit">€</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pasažieri s nižšou sumou -->
+          <div class="form-group" style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
+            <label class="form-checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent-blue-light);">
+              <input type="checkbox" id="edit-toggle-discount-passengers" style="width: 18px; height: 18px; accent-color: var(--accent-emerald); cursor: pointer;">
+              <span>➕ Pasažieri s nižšou sumou (kratšia trasa)</span>
+            </label>
+          </div>
+
+          <div id="edit-discount-container" class="discount-passengers-box" style="display: none;">
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label" for="edit-discount-count">Počet ľudí (menej)</label>
+                <div class="input-wrapper">
+                  <input type="number" id="edit-discount-count" class="input-field" value="1" min="1" max="6">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="edit-discount-price">Suma za osobu</label>
+                <div class="input-wrapper">
+                  <input type="number" id="edit-discount-price" class="input-field" value="5.00" min="0" step="0.5">
+                  <span class="input-unit">€</span>
+                </div>
+              </div>
+            </div>
+            <div class="form-group" style="margin-top: 8px;">
+              <label class="form-label" for="edit-discount-note">Miesto vysadenia / Poznámka</label>
+              <div class="input-wrapper">
+                <input type="text" id="edit-discount-note" class="input-field" placeholder="napr. Nové Mesto">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 14px;">
+          <label class="form-label" for="edit-trip-total-fare">
+            <span>Spolu od ľudí</span>
+            <span class="form-subtext">⚡ automaticky</span>
+          </label>
+          <div class="input-wrapper">
+            <input type="number" id="edit-trip-total-fare" class="input-field input-readonly" value="22.50" readonly tabindex="-1">
+            <span class="input-unit">€</span>
+          </div>
+        </div>
+
+        <button type="button" id="btn-save-edit-trip" class="btn-primary" style="margin-top: 16px;">
+          💾 Uložiť zmeny jazdy
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Refuel Modal -->
+  <div class="modal-overlay" id="edit-refuel-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>✏️ Upraviť tankovanie</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-edit-refuel">✕</button>
+      </div>
+
+      <form id="edit-refuel-form" onsubmit="return false;">
+        <input type="hidden" id="edit-refuel-id">
+        <input type="hidden" id="edit-refuel-docid">
+
+        <div class="form-group">
+          <label class="form-label" for="edit-refuel-date">Dátum tankovania</label>
+          <div class="input-wrapper">
+            <input type="date" id="edit-refuel-date" class="input-field" required>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="edit-refuel-total-price">Suma celkovo</label>
+            <div class="input-wrapper">
+              <input type="number" id="edit-refuel-total-price" class="input-field" step="0.01" min="0" placeholder="0.00" required>
+              <span class="input-unit">€</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-refuel-liters">Objem paliva</label>
+            <div class="input-wrapper">
+              <input type="number" id="edit-refuel-liters" class="input-field" step="0.01" min="0" placeholder="0.00">
+              <span class="input-unit">l</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="edit-refuel-price-per-l">Cena za liter</label>
+            <div class="input-wrapper">
+              <input type="number" id="edit-refuel-price-per-l" class="input-field" step="0.001" min="0" placeholder="0.000">
+              <span class="input-unit">€/l</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-refuel-odometer">Tachometer</label>
+            <div class="input-wrapper">
+              <input type="number" id="edit-refuel-odometer" class="input-field" placeholder="km">
+              <span class="input-unit">km</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 10px;">
+          <label class="form-label" for="edit-refuel-station">Čerpacia stanica</label>
+          <div class="input-wrapper">
+            <input type="text" id="edit-refuel-station" class="input-field" placeholder="napr. OMV, Slovnaft, Orlen">
+          </div>
+        </div>
+
+        <button type="button" id="btn-save-edit-refuel" class="btn-primary" style="margin-top: 16px;">
+          💾 Uložiť zmeny tankovania
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <span id="toast-message">Notifikácia</span>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
