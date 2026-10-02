@@ -31,6 +31,8 @@ let state = {
   passengers: 3,
   pricePerPerson: 7.50,
   noPassengers: false,
+  individualPrices: false,
+  passengerPrices: [7.50, 7.50, 7.50],
   hasDiscountPassengers: false,
   discountPassengers: 1,
   discountPrice: 5.00,
@@ -706,6 +708,37 @@ function initEventListeners() {
     });
   });
 
+  function renderIndividualPriceRows() {
+    const container = document.getElementById('individual-price-rows');
+    if (!container) return;
+    // Ensure passengerPrices array matches current passenger count
+    while (state.passengerPrices.length < state.passengers) {
+      state.passengerPrices.push(state.pricePerPerson || 7.50);
+    }
+    state.passengerPrices = state.passengerPrices.slice(0, state.passengers);
+
+    container.innerHTML = state.passengerPrices.map((price, idx) => `
+      <div class="passenger-price-row">
+        <label class="passenger-price-label">🧑 Cestujúci ${idx + 1}</label>
+        <div class="input-wrapper" style="max-width: 130px;">
+          <input type="number" class="input-field individual-price-input" data-idx="${idx}" value="${price.toFixed(2)}" min="0" step="0.5">
+          <span class="input-unit">€</span>
+        </div>
+      </div>
+    `).join('');
+
+    // Attach listeners
+    container.querySelectorAll('.individual-price-input').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.idx);
+        const val = parseFloat(e.target.value) || 0;
+        state.passengerPrices[idx] = Math.max(0, val);
+        updatePassengerFare();
+      });
+    });
+    updatePassengerFare();
+  }
+
   function updatePassengerFare() {
     if (state.noPassengers) {
       state.totalPassengerFare = 0.00;
@@ -714,7 +747,15 @@ function initEventListeners() {
       return;
     }
 
-    let fare = (state.passengers || 0) * (state.pricePerPerson || 0);
+    let fare = 0;
+    if (state.individualPrices) {
+      fare = state.passengerPrices.reduce((sum, p) => sum + (p || 0), 0);
+      const totalDisplay = document.getElementById('individual-total-display');
+      if (totalDisplay) totalDisplay.textContent = `${fare.toFixed(2)} €`;
+    } else {
+      fare = (state.passengers || 0) * (state.pricePerPerson || 0);
+    }
+
     if (state.hasDiscountPassengers) {
       fare += (state.discountPassengers || 0) * (state.discountPrice || 0);
     }
@@ -733,6 +774,8 @@ function initEventListeners() {
           stepperContainer.style.opacity = '0.4';
           stepperContainer.style.pointerEvents = 'none';
         }
+        const indivWrapper = document.getElementById('toggle-individual-prices-wrapper');
+        if (indivWrapper) { indivWrapper.style.opacity = '0.4'; indivWrapper.style.pointerEvents = 'none'; }
         if (toggleDiscount) {
           toggleDiscount.disabled = true;
           toggleDiscount.parentElement.style.opacity = '0.4';
@@ -745,6 +788,8 @@ function initEventListeners() {
           stepperContainer.style.opacity = '1';
           stepperContainer.style.pointerEvents = 'auto';
         }
+        const indivWrapper = document.getElementById('toggle-individual-prices-wrapper');
+        if (indivWrapper) { indivWrapper.style.opacity = '1'; indivWrapper.style.pointerEvents = 'auto'; }
         if (toggleDiscount) {
           toggleDiscount.disabled = false;
           toggleDiscount.parentElement.style.opacity = '1';
@@ -758,12 +803,35 @@ function initEventListeners() {
     });
   }
 
+  // Individual prices toggle
+  const toggleIndividualPrices = document.getElementById('toggle-individual-prices');
+  const uniformPriceContainer = document.getElementById('uniform-price-container');
+  const individualPricesContainer = document.getElementById('individual-prices-container');
+
+  if (toggleIndividualPrices) {
+    toggleIndividualPrices.addEventListener('change', (e) => {
+      if (state.noPassengers) { e.target.checked = false; return; }
+      state.individualPrices = e.target.checked;
+      if (uniformPriceContainer) uniformPriceContainer.style.display = state.individualPrices ? 'none' : '';
+      if (individualPricesContainer) individualPricesContainer.style.display = state.individualPrices ? 'block' : 'none';
+      if (state.individualPrices) {
+        renderIndividualPriceRows();
+      } else {
+        updatePassengerFare();
+      }
+    });
+  }
+
   btnMinus.addEventListener('click', () => {
     if (state.noPassengers) return;
     if (state.passengers > 1) {
       state.passengers--;
       stepperVal.textContent = state.passengers;
-      updatePassengerFare();
+      if (state.individualPrices) {
+        renderIndividualPriceRows();
+      } else {
+        updatePassengerFare();
+      }
     }
   });
 
@@ -772,7 +840,11 @@ function initEventListeners() {
     if (state.passengers < 8) {
       state.passengers++;
       stepperVal.textContent = state.passengers;
-      updatePassengerFare();
+      if (state.individualPrices) {
+        renderIndividualPriceRows();
+      } else {
+        updatePassengerFare();
+      }
     }
   });
 
@@ -918,6 +990,8 @@ async function saveTrip() {
     discountPassengers: (state.noPassengers || !state.hasDiscountPassengers) ? 0 : state.discountPassengers,
     discountPrice: (state.noPassengers || !state.hasDiscountPassengers) ? 0 : state.discountPrice,
     discountNote: (state.noPassengers || !state.hasDiscountPassengers) ? '' : state.discountNote,
+    individualPrices: state.noPassengers ? false : state.individualPrices,
+    passengerPrices: (state.noPassengers || !state.individualPrices) ? [] : [...state.passengerPrices],
     totalPassengers: totalCount,
     totalFare: income
   };
@@ -957,6 +1031,18 @@ function resetTripForm() {
     stepperContainer.style.opacity = '1';
     stepperContainer.style.pointerEvents = 'auto';
   }
+
+  // Reset individual prices
+  state.individualPrices = false;
+  state.passengerPrices = [7.50, 7.50, 7.50];
+  const toggleIndiv = document.getElementById('toggle-individual-prices');
+  if (toggleIndiv) toggleIndiv.checked = false;
+  const uniformCont = document.getElementById('uniform-price-container');
+  if (uniformCont) uniformCont.style.display = '';
+  const indivCont = document.getElementById('individual-prices-container');
+  if (indivCont) indivCont.style.display = 'none';
+  const indivWrapper = document.getElementById('toggle-individual-prices-wrapper');
+  if (indivWrapper) { indivWrapper.style.opacity = '1'; indivWrapper.style.pointerEvents = 'auto'; }
 
   state.hasDiscountPassengers = false;
   if (toggleDiscount) {
@@ -1096,6 +1182,12 @@ function openEditTrip(tripId, docId) {
   const inputDiscPrice = document.getElementById('edit-discount-price');
   const inputDiscNote = document.getElementById('edit-discount-note');
   const inputTotal = document.getElementById('edit-trip-total-fare');
+  const toggleIndiv = document.getElementById('edit-toggle-individual-prices');
+  const uniformSection = document.getElementById('edit-uniform-price-section');
+  const indivSection = document.getElementById('edit-individual-prices-section');
+  const editIndivCountInput = document.getElementById('edit-individual-passenger-count');
+  const editIndivRows = document.getElementById('edit-individual-price-rows');
+  const editIndivTotalDisplay = document.getElementById('edit-individual-total-display');
 
   if (inputId) inputId.value = trip.id;
   if (inputDocId) inputDocId.value = trip.docId || '';
@@ -1110,8 +1202,33 @@ function openEditTrip(tripId, docId) {
   if (toggleNoPass) toggleNoPass.checked = isNoPass;
   if (passSection) passSection.style.display = isNoPass ? 'none' : 'block';
 
-  if (inputPass) inputPass.value = trip.passengers !== undefined ? trip.passengers : 3;
-  if (inputPrice) inputPrice.value = trip.pricePerPerson !== undefined ? trip.pricePerPerson.toFixed(2) : '7.50';
+  // Individual prices
+  const hasIndiv = !!trip.individualPrices && Array.isArray(trip.passengerPrices) && trip.passengerPrices.length > 0;
+  if (toggleIndiv) toggleIndiv.checked = hasIndiv;
+  if (uniformSection) uniformSection.style.display = hasIndiv ? 'none' : '';
+  if (indivSection) indivSection.style.display = hasIndiv ? 'block' : 'none';
+
+  if (hasIndiv) {
+    const prices = trip.passengerPrices;
+    if (editIndivCountInput) editIndivCountInput.value = prices.length;
+    if (editIndivRows) {
+      editIndivRows.innerHTML = prices.map((p, idx) => `
+        <div class="passenger-price-row">
+          <label class="passenger-price-label">🧑 Cestujúci ${idx + 1}</label>
+          <div class="input-wrapper" style="max-width: 130px;">
+            <input type="number" class="input-field edit-individual-price-input" data-idx="${idx}" value="${(p || 0).toFixed(2)}" min="0" step="0.5">
+            <span class="input-unit">€</span>
+          </div>
+        </div>
+      `).join('');
+    }
+    const total = prices.reduce((s, p) => s + (p || 0), 0);
+    if (editIndivTotalDisplay) editIndivTotalDisplay.textContent = `${total.toFixed(2)} €`;
+    if (inputTotal) inputTotal.value = total.toFixed(2);
+  } else {
+    if (inputPass) inputPass.value = trip.passengers !== undefined ? trip.passengers : 3;
+    if (inputPrice) inputPrice.value = trip.pricePerPerson !== undefined ? trip.pricePerPerson.toFixed(2) : '7.50';
+  }
 
   const hasDisc = !!trip.hasDiscountPassengers;
   if (toggleDisc) toggleDisc.checked = hasDisc;
@@ -1125,13 +1242,19 @@ function openEditTrip(tripId, docId) {
       if (inputTotal) inputTotal.value = '0.00';
       return;
     }
-    const pCount = parseInt(inputPass.value) || 0;
-    const pPrice = parseFloat(inputPrice.value) || 0;
-    let sum = pCount * pPrice;
-
+    let sum = 0;
+    if (toggleIndiv && toggleIndiv.checked) {
+      const inputs = document.querySelectorAll('#edit-individual-price-rows .edit-individual-price-input');
+      inputs.forEach(inp => { sum += parseFloat(inp.value) || 0; });
+      if (editIndivTotalDisplay) editIndivTotalDisplay.textContent = `${sum.toFixed(2)} €`;
+    } else {
+      const pCount = parseInt(inputPass ? inputPass.value : 0) || 0;
+      const pPrice = parseFloat(inputPrice ? inputPrice.value : 0) || 0;
+      sum = pCount * pPrice;
+    }
     if (toggleDisc && toggleDisc.checked) {
-      const dCount = parseInt(inputDiscCount.value) || 0;
-      const dPrice = parseFloat(inputDiscPrice.value) || 0;
+      const dCount = parseInt(inputDiscCount ? inputDiscCount.value : 0) || 0;
+      const dPrice = parseFloat(inputDiscPrice ? inputDiscPrice.value : 0) || 0;
       sum += dCount * dPrice;
     }
     if (inputTotal) inputTotal.value = sum.toFixed(2);
@@ -1191,18 +1314,33 @@ async function saveEditedTrip() {
   let discountNote = '';
   let totalFare = 0;
   let totalCount = 0;
+  let individualPrices = false;
+  let passengerPrices = [];
 
   if (!isNoPass) {
-    passengers = Math.max(0, parseInt(document.getElementById('edit-trip-passengers').value) || 0);
-    pricePerPerson = Math.max(0, parseFloat(document.getElementById('edit-trip-price-person').value) || 0);
+    const isIndiv = document.getElementById('edit-toggle-individual-prices') &&
+                    document.getElementById('edit-toggle-individual-prices').checked;
+    individualPrices = !!isIndiv;
+
+    if (isIndiv) {
+      const inputs = document.querySelectorAll('#edit-individual-price-rows .edit-individual-price-input');
+      inputs.forEach(inp => { passengerPrices.push(Math.max(0, parseFloat(inp.value) || 0)); });
+      passengers = passengerPrices.length;
+      totalFare = parseFloat(passengerPrices.reduce((s, p) => s + p, 0).toFixed(2));
+    } else {
+      passengers = Math.max(0, parseInt(document.getElementById('edit-trip-passengers').value) || 0);
+      pricePerPerson = Math.max(0, parseFloat(document.getElementById('edit-trip-price-person').value) || 0);
+      totalFare = parseFloat((passengers * pricePerPerson).toFixed(2));
+    }
+
     hasDiscountPassengers = document.getElementById('edit-toggle-discount-passengers').checked;
     if (hasDiscountPassengers) {
       discountPassengers = Math.max(0, parseInt(document.getElementById('edit-discount-count').value) || 0);
       discountPrice = Math.max(0, parseFloat(document.getElementById('edit-discount-price').value) || 0);
       discountNote = document.getElementById('edit-discount-note').value.trim();
+      totalFare = parseFloat((totalFare + discountPassengers * discountPrice).toFixed(2));
     }
     totalCount = passengers + discountPassengers;
-    totalFare = parseFloat(((passengers * pricePerPerson) + (discountPassengers * discountPrice)).toFixed(2));
   }
 
   const updatedTrip = {
@@ -1215,6 +1353,8 @@ async function saveEditedTrip() {
     noPassengers: isNoPass,
     passengers: passengers,
     pricePerPerson: pricePerPerson,
+    individualPrices: individualPrices,
+    passengerPrices: passengerPrices,
     hasDiscountPassengers: hasDiscountPassengers,
     discountPassengers: discountPassengers,
     discountPrice: discountPrice,
@@ -1318,21 +1458,77 @@ function initEditModals() {
   const inputDiscPrice = document.getElementById('edit-discount-price');
   const inputTotal = document.getElementById('edit-trip-total-fare');
 
+  const toggleIndivEdit = document.getElementById('edit-toggle-individual-prices');
+  const uniformEditSection = document.getElementById('edit-uniform-price-section');
+  const indivEditSection = document.getElementById('edit-individual-prices-section');
+  const editIndivCount = document.getElementById('edit-individual-passenger-count');
+
   function recalcEditTrip() {
     if (toggleNoPass && toggleNoPass.checked) {
       if (inputTotal) inputTotal.value = '0.00';
       return;
     }
-    const pCount = parseInt(inputPass.value) || 0;
-    const pPrice = parseFloat(inputPrice.value) || 0;
-    let sum = pCount * pPrice;
-
+    let sum = 0;
+    const editIndivTotalDisplay = document.getElementById('edit-individual-total-display');
+    if (toggleIndivEdit && toggleIndivEdit.checked) {
+      const inputs = document.querySelectorAll('#edit-individual-price-rows .edit-individual-price-input');
+      inputs.forEach(inp => { sum += parseFloat(inp.value) || 0; });
+      if (editIndivTotalDisplay) editIndivTotalDisplay.textContent = `${sum.toFixed(2)} €`;
+    } else {
+      const pCount = parseInt(inputPass ? inputPass.value : 0) || 0;
+      const pPrice = parseFloat(inputPrice ? inputPrice.value : 0) || 0;
+      sum = pCount * pPrice;
+    }
     if (toggleDisc && toggleDisc.checked) {
-      const dCount = parseInt(inputDiscCount.value) || 0;
-      const dPrice = parseFloat(inputDiscPrice.value) || 0;
+      const dCount = parseInt(inputDiscCount ? inputDiscCount.value : 0) || 0;
+      const dPrice = parseFloat(inputDiscPrice ? inputDiscPrice.value : 0) || 0;
       sum += dCount * dPrice;
     }
     if (inputTotal) inputTotal.value = sum.toFixed(2);
+  }
+
+  function renderEditIndividualRows(count) {
+    const container = document.getElementById('edit-individual-price-rows');
+    if (!container) return;
+    const existing = container.querySelectorAll('.edit-individual-price-input');
+    const prices = Array.from(existing).map(inp => parseFloat(inp.value) || 7.50);
+    while (prices.length < count) prices.push(7.50);
+    const newPrices = prices.slice(0, count);
+    container.innerHTML = newPrices.map((p, idx) => `
+      <div class="passenger-price-row">
+        <label class="passenger-price-label">🧑 Cestujúci ${idx + 1}</label>
+        <div class="input-wrapper" style="max-width: 130px;">
+          <input type="number" class="input-field edit-individual-price-input" data-idx="${idx}" value="${p.toFixed(2)}" min="0" step="0.5">
+          <span class="input-unit">€</span>
+        </div>
+      </div>
+    `).join('');
+    container.querySelectorAll('.edit-individual-price-input').forEach(inp => {
+      inp.addEventListener('input', recalcEditTrip);
+    });
+    recalcEditTrip();
+  }
+
+  if (toggleIndivEdit) {
+    toggleIndivEdit.addEventListener('change', () => {
+      const isOn = toggleIndivEdit.checked;
+      if (uniformEditSection) uniformEditSection.style.display = isOn ? 'none' : '';
+      if (indivEditSection) indivEditSection.style.display = isOn ? 'block' : 'none';
+      if (isOn) {
+        const count = parseInt(editIndivCount ? editIndivCount.value : 3) || 3;
+        renderEditIndividualRows(count);
+      } else {
+        recalcEditTrip();
+      }
+    });
+  }
+
+  if (editIndivCount) {
+    editIndivCount.addEventListener('change', () => {
+      const count = Math.min(8, Math.max(1, parseInt(editIndivCount.value) || 1));
+      editIndivCount.value = count;
+      renderEditIndividualRows(count);
+    });
   }
 
   if (btnCloseTrip && modalTrip) {
@@ -1529,6 +1725,9 @@ function renderHistory() {
       let passengerInfo = `${totalCount} ľudí`;
       if (item.noPassengers || totalCount === 0) {
         passengerInfo = `0 ľudí (sám)`;
+      } else if (item.individualPrices && item.passengerPrices && item.passengerPrices.length > 0) {
+        const pricesStr = item.passengerPrices.map(p => `${(p || 0).toFixed(2)}€`).join(' + ');
+        passengerInfo = `${item.passengerPrices.length} ľudí (${pricesStr})`;
       } else if (item.hasDiscountPassengers && item.discountPassengers > 0) {
         passengerInfo = `${totalCount} ľudí (${item.passengers}×${item.pricePerPerson ? item.pricePerPerson.toFixed(2) : '7.50'}€ + ${item.discountPassengers}×${item.discountPrice ? item.discountPrice.toFixed(2) : ''}€${item.discountNote ? ' • ' + item.discountNote : ''})`;
       } else if (item.pricePerPerson) {

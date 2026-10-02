@@ -859,6 +859,26 @@ body {
   border-color: rgba(244, 63, 94, 0.25);
 }
 
+/* Individual Passenger Price Rows */
+.passenger-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-card-hover);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.passenger-price-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 /* History Badges */
 .history-badge {
   display: inline-flex;

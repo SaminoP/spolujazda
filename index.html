@@ -171,7 +171,16 @@
           </label>
         </div>
 
-        <div class="grid-2" style="margin-top: 14px;">
+        <!-- Voliteľná možnosť: Individuálna suma pre každého cestujúceho -->
+        <div class="form-group" style="margin-top: 8px;" id="toggle-individual-prices-wrapper">
+          <label class="form-checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent-blue-light);">
+            <input type="checkbox" id="toggle-individual-prices" style="width: 18px; height: 18px; accent-color: var(--accent-blue); cursor: pointer;">
+            <span>🎫 Zadať individuálnu sumu pre každého cestujúceho</span>
+          </label>
+        </div>
+
+        <!-- Zobrazí sa iba pri jednotnej cene -->
+        <div id="uniform-price-container" class="grid-2" style="margin-top: 14px;">
           <div class="form-group">
             <label class="form-label" for="price-per-person">Cena na osobu</label>
             <div class="input-wrapper">
@@ -188,6 +197,20 @@
               <input type="number" id="total-passenger-fare" class="input-field input-readonly" value="22.50" readonly tabindex="-1">
               <span class="input-unit">€</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Individuálne ceny – zobrazí sa iba keď je zapnutý prepínač -->
+        <div id="individual-prices-container" style="display:none; margin-top: 14px;">
+          <div id="individual-price-rows">
+            <!-- Dynamicky generované riadky pre každého pasažiera -->
+          </div>
+          <div class="form-group" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-card-hover); border-radius: 10px; padding: 10px 14px;">
+            <label class="form-label" style="margin:0; font-size:13px; color:var(--text-secondary);">
+              <span>Spolu od cestujúcich</span>
+              <span class="form-subtext" style="display:block;">⚡ automaticky</span>
+            </label>
+            <span id="individual-total-display" style="font-size:20px; font-weight:800; color:var(--accent-emerald);">0.00 €</span>
           </div>
         </div>
 
@@ -523,7 +546,16 @@
         </div>
 
         <div id="edit-passengers-section">
-          <div class="grid-2" style="margin-top: 12px;">
+          <!-- Individuálna suma pre každého cestujúceho – prepínač -->
+          <div class="form-group" style="margin-top: 10px;" id="edit-toggle-individual-wrapper">
+            <label class="form-checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent-blue-light);">
+              <input type="checkbox" id="edit-toggle-individual-prices" style="width: 18px; height: 18px; accent-color: var(--accent-blue); cursor: pointer;">
+              <span>🎫 Individuálna suma pre každého cestujúceho</span>
+            </label>
+          </div>
+
+          <!-- Jednotná cena – grid s počtom a cenou -->
+          <div id="edit-uniform-price-section" class="grid-2" style="margin-top: 12px;">
             <div class="form-group">
               <label class="form-label" for="edit-trip-passengers">Pasažieri (plná trasa)</label>
               <div class="input-wrapper">
@@ -536,6 +568,26 @@
                 <input type="number" id="edit-trip-price-person" class="input-field" min="0" step="0.5" value="7.50">
                 <span class="input-unit">€</span>
               </div>
+            </div>
+          </div>
+
+          <!-- Individuálne ceny pre každého cestujúceho -->
+          <div id="edit-individual-prices-section" style="display:none; margin-top: 12px;">
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label class="form-label">Počet pasažierov</label>
+              <div class="input-wrapper" style="max-width: 100px;">
+                <input type="number" id="edit-individual-passenger-count" class="input-field" min="1" max="8" value="3">
+              </div>
+            </div>
+            <div id="edit-individual-price-rows">
+              <!-- Dynamicky generované -->
+            </div>
+            <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-card-hover); border-radius: 10px; padding: 10px 14px;">
+              <label class="form-label" style="margin:0; font-size:13px; color:var(--text-secondary);">
+                <span>Spolu od cestujúcich</span>
+                <span class="form-subtext" style="display:block;">⚡ automaticky</span>
+              </label>
+              <span id="edit-individual-total-display" style="font-size:20px; font-weight:800; color:var(--accent-emerald);">0.00 €</span>
             </div>
           </div>
 
