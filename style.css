@@ -879,6 +879,35 @@ body {
   white-space: nowrap;
 }
 
+/* Price Preset Quick-Select Buttons */
+.price-presets {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.price-preset-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid var(--accent-blue);
+  background: rgba(2, 132, 199, 0.10);
+  color: var(--accent-blue-light);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  line-height: 1;
+}
+
+.price-preset-btn:hover,
+.price-preset-btn:active {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: var(--accent-blue);
+  transform: scale(1.06);
+}
+
 /* History Badges */
 .history-badge {
   display: inline-flex;

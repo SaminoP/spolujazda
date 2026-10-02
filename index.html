@@ -180,22 +180,30 @@
         </div>
 
         <!-- Zobrazí sa iba pri jednotnej cene -->
-        <div id="uniform-price-container" class="grid-2" style="margin-top: 14px;">
-          <div class="form-group">
-            <label class="form-label" for="price-per-person">Cena na osobu</label>
-            <div class="input-wrapper">
-              <input type="number" id="price-per-person" class="input-field" value="7.50" min="0" step="0.5">
-              <span class="input-unit">€</span>
+        <div id="uniform-price-container" style="margin-top: 14px;">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="price-per-person">Cena na osobu</label>
+              <div class="input-wrapper">
+                <input type="number" id="price-per-person" class="input-field" value="7.50" min="0" step="0.5">
+                <span class="input-unit">€</span>
+              </div>
+              <!-- Rýchle predvolené sumy -->
+              <div class="price-presets">
+                <button type="button" class="price-preset-btn" data-price="7.00">7,00 €</button>
+                <button type="button" class="price-preset-btn" data-price="7.50">7,50 €</button>
+                <button type="button" class="price-preset-btn" data-price="8.00">8,00 €</button>
+              </div>
             </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="total-passenger-fare">
-              <span>Spolu od ľudí</span>
-              <span class="form-subtext">⚡ automaticky</span>
-            </label>
-            <div class="input-wrapper">
-              <input type="number" id="total-passenger-fare" class="input-field input-readonly" value="22.50" readonly tabindex="-1">
-              <span class="input-unit">€</span>
+            <div class="form-group">
+              <label class="form-label" for="total-passenger-fare">
+                <span>Spolu od ľudí</span>
+                <span class="form-subtext">⚡ automaticky</span>
+              </label>
+              <div class="input-wrapper">
+                <input type="number" id="total-passenger-fare" class="input-field input-readonly" value="22.50" readonly tabindex="-1">
+                <span class="input-unit">€</span>
+              </div>
             </div>
           </div>
         </div>

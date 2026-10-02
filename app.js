@@ -720,14 +720,21 @@ function initEventListeners() {
     container.innerHTML = state.passengerPrices.map((price, idx) => `
       <div class="passenger-price-row">
         <label class="passenger-price-label">🧑 Cestujúci ${idx + 1}</label>
-        <div class="input-wrapper" style="max-width: 130px;">
-          <input type="number" class="input-field individual-price-input" data-idx="${idx}" value="${price.toFixed(2)}" min="0" step="0.5">
-          <span class="input-unit">€</span>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <div class="input-wrapper" style="max-width: 130px;">
+            <input type="number" class="input-field individual-price-input" data-idx="${idx}" value="${price.toFixed(2)}" min="0" step="0.5">
+            <span class="input-unit">€</span>
+          </div>
+          <div class="price-presets">
+            <button type="button" class="price-preset-btn indiv-preset-btn" data-idx="${idx}" data-price="7.00">7,00</button>
+            <button type="button" class="price-preset-btn indiv-preset-btn" data-idx="${idx}" data-price="7.50">7,50</button>
+            <button type="button" class="price-preset-btn indiv-preset-btn" data-idx="${idx}" data-price="8.00">8,00</button>
+          </div>
         </div>
       </div>
     `).join('');
 
-    // Attach listeners
+    // Attach input listeners
     container.querySelectorAll('.individual-price-input').forEach(inp => {
       inp.addEventListener('input', (e) => {
         const idx = parseInt(e.target.dataset.idx);
@@ -736,8 +743,33 @@ function initEventListeners() {
         updatePassengerFare();
       });
     });
+
+    // Attach preset button listeners
+    container.querySelectorAll('.indiv-preset-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(e.target.dataset.idx);
+        const price = parseFloat(e.target.dataset.price);
+        state.passengerPrices[idx] = price;
+        const inp = container.querySelector(`.individual-price-input[data-idx="${idx}"]`);
+        if (inp) inp.value = price.toFixed(2);
+        updatePassengerFare();
+      });
+    });
+
     updatePassengerFare();
   }
+
+  // Preset buttons for uniform price field
+  document.querySelectorAll('.price-preset-btn[data-price]').forEach(btn => {
+    if (btn.classList.contains('indiv-preset-btn')) return; // handled dynamically
+    btn.addEventListener('click', () => {
+      const price = parseFloat(btn.dataset.price);
+      state.pricePerPerson = price;
+      if (inputPricePerPerson) inputPricePerPerson.value = price.toFixed(2);
+      updatePassengerFare();
+    });
+  });
+
 
   function updatePassengerFare() {
     if (state.noPassengers) {
