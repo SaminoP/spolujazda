@@ -33,6 +33,8 @@ let state = {
   noPassengers: false,
   individualPrices: false,
   passengerPrices: [7.50, 7.50, 7.50],
+  fuelConsumption: 6.5,
+  fuelConsumedLiters: 9.75,
   hasDiscountPassengers: false,
   discountPassengers: 1,
   discountPrice: 5.00,
@@ -91,6 +93,9 @@ const discountContainer = document.getElementById('discount-passengers-container
 const inputDiscountCount = document.getElementById('discount-passengers-count');
 const inputDiscountPrice = document.getElementById('discount-price-per-person');
 const inputDiscountNote = document.getElementById('discount-note');
+const inputTripConsumption = document.getElementById('trip-consumption');
+const inputTripConsumedLiters = document.getElementById('trip-consumed-liters');
+const consumptionPresetBtns = document.querySelectorAll('.consumption-preset-btn');
 
 // Trip Displays
 const profitBanner = document.getElementById('profit-banner');
@@ -99,6 +104,7 @@ const profitAmount = document.getElementById('profit-amount');
 const displayPricePerson = document.getElementById('display-price-person');
 const displayPassengers = document.getElementById('display-passengers');
 const displayRouteKm = document.getElementById('display-route-km');
+const displayTripFuel = document.getElementById('display-trip-fuel');
 
 // Trip Buttons
 const btnSaveTrip = document.getElementById('btn-save-trip');
@@ -704,6 +710,7 @@ function initEventListeners() {
       state.routeType = routeKey;
       state.distanceKm = 150;
       inputDistance.value = 150;
+      updateTripConsumption();
       recalculateTrip();
     });
   });
@@ -919,6 +926,31 @@ function initEventListeners() {
     });
   }
 
+  function updateTripConsumption() {
+    const consumption = parseFloat(inputTripConsumption ? inputTripConsumption.value : state.fuelConsumption) || 0;
+    state.fuelConsumption = Math.max(0, consumption);
+    const liters = parseFloat(((state.distanceKm * state.fuelConsumption) / 100).toFixed(2));
+    state.fuelConsumedLiters = liters;
+    if (inputTripConsumedLiters) {
+      inputTripConsumedLiters.value = liters.toFixed(2);
+    }
+    if (displayTripFuel) {
+      displayTripFuel.textContent = `${liters.toFixed(2)} l`;
+    }
+  }
+
+  if (inputTripConsumption) {
+    inputTripConsumption.addEventListener('input', updateTripConsumption);
+  }
+
+  consumptionPresetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const consumption = parseFloat(btn.dataset.consumption);
+      if (inputTripConsumption) inputTripConsumption.value = consumption.toFixed(1);
+      updateTripConsumption();
+    });
+  });
+
   btnSaveTrip.addEventListener('click', saveTrip);
   btnResetTrip.addEventListener('click', resetTripForm);
 
@@ -989,6 +1021,12 @@ function recalculateTrip() {
     }
   }
   if (displayRouteKm) displayRouteKm.textContent = `${state.distanceKm} km`;
+  if (displayTripFuel) {
+    const liters = state.fuelConsumedLiters !== undefined
+      ? state.fuelConsumedLiters
+      : parseFloat(((state.distanceKm * (state.fuelConsumption || 6.5)) / 100).toFixed(2));
+    displayTripFuel.textContent = `${liters.toFixed(2)} l`;
+  }
 }
 
 function switchTab(tabId) {
@@ -1024,6 +1062,8 @@ async function saveTrip() {
     discountNote: (state.noPassengers || !state.hasDiscountPassengers) ? '' : state.discountNote,
     individualPrices: state.noPassengers ? false : state.individualPrices,
     passengerPrices: (state.noPassengers || !state.individualPrices) ? [] : [...state.passengerPrices],
+    fuelConsumption: state.fuelConsumption !== undefined ? state.fuelConsumption : 6.5,
+    fuelConsumedLiters: state.fuelConsumedLiters !== undefined ? state.fuelConsumedLiters : 9.75,
     totalPassengers: totalCount,
     totalFare: income
   };
@@ -1075,6 +1115,12 @@ function resetTripForm() {
   if (indivCont) indivCont.style.display = 'none';
   const indivWrapper = document.getElementById('toggle-individual-prices-wrapper');
   if (indivWrapper) { indivWrapper.style.opacity = '1'; indivWrapper.style.pointerEvents = 'auto'; }
+
+  // Reset fuel consumption
+  state.fuelConsumption = 6.5;
+  state.fuelConsumedLiters = 9.75;
+  if (inputTripConsumption) inputTripConsumption.value = '6.5';
+  if (inputTripConsumedLiters) inputTripConsumedLiters.value = '9.75';
 
   state.hasDiscountPassengers = false;
   if (toggleDiscount) {
@@ -1269,6 +1315,15 @@ function openEditTrip(tripId, docId) {
   if (inputDiscPrice) inputDiscPrice.value = trip.discountPrice !== undefined ? trip.discountPrice.toFixed(2) : '5.00';
   if (inputDiscNote) inputDiscNote.value = trip.discountNote || '';
 
+  // Fuel consumption in edit modal
+  const editTripConsumption = document.getElementById('edit-trip-consumption');
+  const editTripConsumedLiters = document.getElementById('edit-trip-consumed-liters');
+  const consumption = trip.fuelConsumption !== undefined ? trip.fuelConsumption : 6.5;
+  if (editTripConsumption) editTripConsumption.value = consumption;
+  const d = trip.distanceKm || 150;
+  const liters = parseFloat(((d * consumption) / 100).toFixed(2));
+  if (editTripConsumedLiters) editTripConsumedLiters.value = liters.toFixed(2);
+
   function calcEditFare() {
     if (toggleNoPass && toggleNoPass.checked) {
       if (inputTotal) inputTotal.value = '0.00';
@@ -1375,6 +1430,10 @@ async function saveEditedTrip() {
     totalCount = passengers + discountPassengers;
   }
 
+  const editTripConsumption = document.getElementById('edit-trip-consumption');
+  const fuelConsumption = editTripConsumption ? Math.max(0, parseFloat(editTripConsumption.value) || 0) : 6.5;
+  const fuelConsumedLiters = parseFloat(((150 * fuelConsumption) / 100).toFixed(2));
+
   const updatedTrip = {
     id: tripId,
     type: 'trip',
@@ -1387,6 +1446,8 @@ async function saveEditedTrip() {
     pricePerPerson: pricePerPerson,
     individualPrices: individualPrices,
     passengerPrices: passengerPrices,
+    fuelConsumption: fuelConsumption,
+    fuelConsumedLiters: fuelConsumedLiters,
     hasDiscountPassengers: hasDiscountPassengers,
     discountPassengers: discountPassengers,
     discountPrice: discountPrice,
@@ -1597,6 +1658,18 @@ function initEditModals() {
   if (inputDiscCount) inputDiscCount.addEventListener('input', recalcEditTrip);
   if (inputDiscPrice) inputDiscPrice.addEventListener('input', recalcEditTrip);
 
+  const editTripConsumption = document.getElementById('edit-trip-consumption');
+  const editTripConsumedLiters = document.getElementById('edit-trip-consumed-liters');
+  if (editTripConsumption) {
+    editTripConsumption.addEventListener('input', () => {
+      const d = 150;
+      const c = parseFloat(editTripConsumption.value) || 0;
+      if (editTripConsumedLiters) {
+        editTripConsumedLiters.value = ((d * c) / 100).toFixed(2);
+      }
+    });
+  }
+
   if (btnSaveTripEdit) {
     btnSaveTripEdit.addEventListener('click', saveEditedTrip);
   }
@@ -1766,6 +1839,14 @@ function renderHistory() {
         passengerInfo = `${item.passengers} ľudí (${item.pricePerPerson.toFixed(2)} €/os.)`;
       }
 
+      let fuelInfo = '';
+      if (item.fuelConsumption !== undefined && item.fuelConsumption > 0) {
+        const liters = item.fuelConsumedLiters !== undefined
+          ? item.fuelConsumedLiters
+          : parseFloat(((item.distanceKm || 150) * item.fuelConsumption / 100).toFixed(2));
+        fuelInfo = `<span>⛽ ${item.fuelConsumption.toFixed(1)} l/100km (${liters.toFixed(2)} l)</span>`;
+      }
+
       return `
         <div class="trip-item">
           <div class="trip-left">
@@ -1776,6 +1857,7 @@ function renderHistory() {
               <span>📅 ${formatDate(item.date)}</span>
               <span>🛣️ ${item.distanceKm} km</span>
               <span>👥 ${passengerInfo}</span>
+              ${fuelInfo}
             </div>
           </div>
           <div class="trip-right">
@@ -1821,12 +1903,26 @@ function renderStats() {
   let totalIncome = 0;
   let totalKm = 0;
   let totalPassengers = 0;
+  let totalTripsLiters = 0;
+  let tripsWithFuel = 0;
+  let sumTripConsumption = 0;
 
   trips.forEach(t => {
     totalIncome += (t.totalFare || t.netProfit || 0);
     totalKm += t.distanceKm || 0;
     totalPassengers += (t.totalPassengers || t.passengers || 0);
+    if (t.fuelConsumedLiters !== undefined && t.fuelConsumedLiters > 0) {
+      totalTripsLiters += t.fuelConsumedLiters;
+    } else if (t.fuelConsumption && t.fuelConsumption > 0) {
+      totalTripsLiters += ((t.distanceKm || 150) * t.fuelConsumption) / 100;
+    }
+    if (t.fuelConsumption && t.fuelConsumption > 0) {
+      sumTripConsumption += t.fuelConsumption;
+      tripsWithFuel++;
+    }
   });
+
+  const avgTripConsumption = tripsWithFuel > 0 ? (sumTripConsumption / tripsWithFuel) : 0;
 
   let totalSpentFuel = 0;
   let totalLiters = 0;
@@ -1851,6 +1947,8 @@ function renderStats() {
   const elTotalRefuelsCount = document.getElementById('stat-total-refuels-count');
   const elTotalLitersAll = document.getElementById('stat-total-liters-all');
   const elAvgFuelPrice = document.getElementById('stat-avg-fuel-price');
+  const elTotalTripsLiters = document.getElementById('stat-total-trips-liters');
+  const elAvgTripConsumption = document.getElementById('stat-avg-trip-consumption');
 
   if (elWalletNet) {
     elWalletNet.textContent = `${walletNet >= 0 ? '+' : ''}${walletNet.toFixed(2)} €`;
@@ -1876,6 +1974,8 @@ function renderStats() {
   if (elTotalRefuelsCount) elTotalRefuelsCount.textContent = refuels.length;
   if (elTotalLitersAll) elTotalLitersAll.textContent = `${totalLiters.toFixed(1)} l`;
   if (elAvgFuelPrice) elAvgFuelPrice.textContent = `${avgFuelPrice.toFixed(3)} €/l`;
+  if (elTotalTripsLiters) elTotalTripsLiters.textContent = `${totalTripsLiters.toFixed(1)} l`;
+  if (elAvgTripConsumption) elAvgTripConsumption.textContent = `${avgTripConsumption.toFixed(1)} l/100km`;
 }
 
 function exportData() {

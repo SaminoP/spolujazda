@@ -497,7 +497,7 @@ body {
 
 .profit-details-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(75px, 1fr));
   gap: 8px;
   margin-top: 16px;
   padding-top: 16px;

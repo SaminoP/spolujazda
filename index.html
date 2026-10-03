@@ -111,13 +111,17 @@
             <span class="detail-label">Vzdialenosť</span>
             <span id="display-route-km" class="detail-value">150 km</span>
           </div>
+          <div class="detail-item">
+            <span class="detail-label">Spotreba</span>
+            <span id="display-trip-fuel" class="detail-value">9.75 l</span>
+          </div>
         </div>
       </div>
 
       <!-- Card: Trasa & Vzdialenosť -->
       <div class="card">
         <div class="card-title">
-          <span class="icon">🛣️</span> Trasa a vzdialenosť
+          <span class="icon">🛣️</span> Trasa, vzdialenosť a spotreba
         </div>
 
         <div class="segmented-control" style="grid-template-columns: 1fr 1fr;">
@@ -140,6 +144,35 @@
             <div class="input-wrapper">
               <input type="number" id="trip-distance" class="input-field input-readonly" value="150" readonly tabindex="-1">
               <span class="input-unit">km</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-color);">
+          <div class="form-group">
+            <label class="form-label" for="trip-consumption">
+              <span>Spotreba na 100 km</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="trip-consumption" class="input-field" value="6.5" min="0" step="0.1" placeholder="6.5">
+              <span class="input-unit">l/100km</span>
+            </div>
+            <!-- Rýchle predvoľby spotreby -->
+            <div class="price-presets" style="margin-top: 6px;">
+              <button type="button" class="price-preset-btn consumption-preset-btn" data-consumption="6.0">6,0</button>
+              <button type="button" class="price-preset-btn consumption-preset-btn" data-consumption="6.5">6,5</button>
+              <button type="button" class="price-preset-btn consumption-preset-btn" data-consumption="7.0">7,0</button>
+              <button type="button" class="price-preset-btn consumption-preset-btn" data-consumption="7.5">7,5</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="trip-consumed-liters">
+              <span>Spotrebované palivo</span>
+              <span class="form-subtext">⚡ automaticky</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="trip-consumed-liters" class="input-field input-readonly" value="9.75" readonly tabindex="-1">
+              <span class="input-unit">l</span>
             </div>
           </div>
         </div>
@@ -429,6 +462,14 @@
           <span class="stat-box-label">Priem. cena paliva</span>
           <span id="stat-avg-fuel-price" class="stat-box-value">0.00 €/l</span>
         </div>
+        <div class="stat-box">
+          <span class="stat-box-label">Spotreba na jazdách</span>
+          <span id="stat-total-trips-liters" class="stat-box-value">0.0 l</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-box-label">Priem. spotreba jázd</span>
+          <span id="stat-avg-trip-consumption" class="stat-box-value">0.0 l/100km</span>
+        </div>
       </div>
 
       <!-- Backup / Restore Card -->
@@ -542,6 +583,26 @@
             <div class="input-wrapper">
               <input type="number" id="edit-trip-distance" class="input-field input-readonly" value="150" readonly tabindex="-1">
               <span class="input-unit">km</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 10px;">
+          <div class="form-group">
+            <label class="form-label" for="edit-trip-consumption">Spotreba na 100 km</label>
+            <div class="input-wrapper">
+              <input type="number" id="edit-trip-consumption" class="input-field" min="0" step="0.1" placeholder="6.5">
+              <span class="input-unit">l/100km</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-trip-consumed-liters">
+              <span>Spotrebované palivo</span>
+              <span class="form-subtext">⚡ automaticky</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="edit-trip-consumed-liters" class="input-field input-readonly" readonly tabindex="-1">
+              <span class="input-unit">l</span>
             </div>
           </div>
         </div>
