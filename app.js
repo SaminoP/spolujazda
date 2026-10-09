@@ -144,6 +144,17 @@ const modalReceiptTitle = document.getElementById('receipt-modal-title');
 const modalReceiptImg = document.getElementById('receipt-modal-img');
 const btnCloseReceiptModal = document.getElementById('btn-close-receipt-modal');
 
+// OCR Elements
+const checkRefuelEnableOcr = document.getElementById('refuel-enable-ocr');
+const elRefuelOcrStatus = document.getElementById('refuel-receipt-ocr-status');
+const elRefuelOcrText = document.getElementById('refuel-receipt-ocr-text');
+const btnRefuelRerunOcr = document.getElementById('btn-refuel-rerun-ocr');
+
+const checkEditRefuelEnableOcr = document.getElementById('edit-refuel-enable-ocr');
+const elEditRefuelOcrStatus = document.getElementById('edit-refuel-receipt-ocr-status');
+const elEditRefuelOcrText = document.getElementById('edit-refuel-receipt-ocr-text');
+const btnEditRefuelRerunOcr = document.getElementById('btn-edit-refuel-rerun-ocr');
+
 function compressImageFile(file, maxWidth = 1000, quality = 0.7) {
   return new Promise((resolve, reject) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -191,6 +202,296 @@ function openReceiptModal(refuelId, docId) {
     modalReceiptTitle.textContent = `🧾 Bloček – ${refuel.station} (${formatDate(refuel.date)})`;
   }
   if (modalReceipt) modalReceipt.classList.add('open');
+}
+
+// ================= OCR RECEIPT PARSER =================
+function parseReceiptText(text) {
+  if (!text) return {};
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const result = {
+    date: null,
+    totalPrice: null,
+    liters: null,
+    pricePerL: null,
+    station: null
+  };
+
+  // 1. Čerpacia stanica (Značka + Mesto)
+  const KNOWN_BRANDS = [
+    { regex: /slovnaft/i, name: 'Slovnaft' },
+    { regex: /omv|o\s*m\s*v/i, name: 'OMV' },
+    { regex: /orlen|benzina/i, name: 'Orlen' },
+    { regex: /shell/i, name: 'Shell' },
+    { regex: /daltrans|daloil|dal\s*oil/i, name: 'Daltrans' },
+    { regex: /jurki/i, name: 'Jurki' },
+    { regex: /tesco/i, name: 'Tesco ČS' },
+    { regex: /metro/i, name: 'Metro ČS' },
+    { regex: /tam\s*autocentrum|tam\s*oil/i, name: 'TAM' },
+    { regex: /\bgas\b/i, name: 'GAS' },
+    { regex: /tank\s*&?\s*go/i, name: 'Tank&Go' },
+    { regex: /real-?k/i, name: 'Real-K' },
+    { regex: /avia/i, name: 'Avia' },
+    { regex: /\bmol\b/i, name: 'MOL' },
+    { regex: /eurooil/i, name: 'EuroOil' },
+    { regex: /robin\s*oil/i, name: 'Robin Oil' },
+    { regex: /pap\s*oil/i, name: 'PAP Oil' }
+  ];
+
+  const CITIES = [
+    'Piešťany', 'Piestany', 'Trnava', 'Brno', 'Bratislava', 'Nitra', 'Trenčín', 'Trencin',
+    'Hlohovec', 'Senica', 'Nové Mesto', 'Nove Mesto', 'Žilina', 'Zilina', 'Břeclav', 'Breclav',
+    'Hodonín', 'Hodonin', 'Malacky', 'Zvolen', 'Pezinok', 'Senec', 'Sládkovičovo', 'Galanta'
+  ];
+
+  let detectedBrand = null;
+  for (const b of KNOWN_BRANDS) {
+    if (b.regex.test(text)) {
+      detectedBrand = b.name;
+      break;
+    }
+  }
+
+  let detectedCity = null;
+  for (const city of CITIES) {
+    const cityRegex = new RegExp('\\b' + city + '\\b', 'i');
+    if (cityRegex.test(text)) {
+      detectedCity = city;
+      break;
+    }
+  }
+
+  if (detectedBrand && detectedCity) {
+    result.station = `${detectedBrand} ${detectedCity}`;
+  } else if (detectedBrand) {
+    result.station = detectedBrand;
+  } else if (lines.length > 0) {
+    for (let i = 0; i < Math.min(4, lines.length); i++) {
+      const line = lines[i];
+      if (!/ico|ic\s*dph|dic|doklad|pokladna|tel|kassa|faktura/i.test(line) && line.length >= 3 && line.length <= 30) {
+        result.station = line;
+        break;
+      }
+    }
+  }
+
+  // 2. Dátum (DD.MM.YYYY alebo YYYY-MM-DD)
+  const dateMatch1 = text.match(/\b([0-3]?\d)[.\/-]([0-1]?\d)[.\/-](202\d)\b/);
+  const dateMatch2 = text.match(/\b(202\d)[.\/-]([0-1]?\d)[.\/-]([0-3]?\d)\b/);
+
+  if (dateMatch1) {
+    const day = parseInt(dateMatch1[1]);
+    const month = parseInt(dateMatch1[2]);
+    const year = parseInt(dateMatch1[3]);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      result.date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  } else if (dateMatch2) {
+    const year = parseInt(dateMatch2[1]);
+    const month = parseInt(dateMatch2[2]);
+    const day = parseInt(dateMatch2[3]);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      result.date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+
+  // 3. Litre a Cena za liter
+  // Hľadáme objem označený jednotkou 'l', 'ltr', 'lit'
+  for (const line of lines) {
+    const litMatch = line.match(/\b(\d{1,3}[.,]\d{1,3})\s*(?:l|ltr|lit|litrov)\b/i);
+    if (litMatch) {
+      const val = parseFloat(litMatch[1].replace(',', '.'));
+      if (val >= 2 && val <= 120) {
+        result.liters = val;
+        break;
+      }
+    }
+  }
+
+  // Hľadáme násobenie "Volume x UnitPrice" (napr. 28,50 * 1,590)
+  if (!result.liters || !result.pricePerL) {
+    for (const line of lines) {
+      const multMatch = line.match(/\b(\d{1,3}[.,]\d{1,3})\s*(?:x|\*)\s*(\d{1,2}[.,]\d{2,3})\b/i);
+      if (multMatch) {
+        const v1 = parseFloat(multMatch[1].replace(',', '.'));
+        const v2 = parseFloat(multMatch[2].replace(',', '.'));
+        if (v1 >= 4 && v1 <= 120 && v2 >= 1.0 && v2 <= 3.0) {
+          result.liters = v1;
+          result.pricePerL = v2;
+          break;
+        } else if (v2 >= 4 && v2 <= 120 && v1 >= 1.0 && v1 <= 3.0) {
+          result.liters = v2;
+          result.pricePerL = v1;
+          break;
+        }
+      }
+    }
+  }
+
+  // Ak cena za liter stále chýba, hľadáme vzor €/l alebo 1.XXX pri palive
+  if (!result.pricePerL) {
+    for (const line of lines) {
+      const pplMatch = line.match(/\b(1[.,]\d{2,3})\s*(?:€|eur)\s*\/\s*(?:l|ltr)\b/i);
+      if (pplMatch) {
+        result.pricePerL = parseFloat(pplMatch[1].replace(',', '.'));
+        break;
+      }
+    }
+    if (!result.pricePerL) {
+      for (const line of lines) {
+        if (/natural|diesel|nafta|evo|bmb|maxxmotion|v-power|fuel|palivo|efecta/i.test(line)) {
+          const m = line.match(/\b(1[.,]\d{3})\b/);
+          if (m) {
+            result.pricePerL = parseFloat(m[1].replace(',', '.'));
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Celková suma (SPOLU, CELKOM, K ÚHRADE, SUMA, atď.)
+  const TOTAL_KEYWORDS = /spolu|celkom|k\s*úhrade|k\s*uhrade|celkov[aá]\s*suma|suma|platba|karty/i;
+  let candidates = [];
+
+  for (const line of lines) {
+    if (TOTAL_KEYWORDS.test(line)) {
+      const numMatches = line.match(/\b(\d{1,3}[.,]\d{2})\b/g);
+      if (numMatches) {
+        for (const nm of numMatches) {
+          const val = parseFloat(nm.replace(',', '.'));
+          if (val >= 5 && val <= 350) {
+            candidates.push({ val, priority: /spolu|celkom|k\s*úhrade|k\s*uhrade/i.test(line) ? 2 : 1 });
+          }
+        }
+      }
+    }
+  }
+
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => b.priority - a.priority || b.val - a.val);
+    result.totalPrice = candidates[0].val;
+  } else {
+    // Záložná možnosť: najvyššia rozumná suma na bločku
+    let allPrices = [];
+    for (const line of lines) {
+      const numMatches = line.match(/\b(\d{1,3}[.,]\d{2})\b/g);
+      if (numMatches) {
+        for (const nm of numMatches) {
+          const val = parseFloat(nm.replace(',', '.'));
+          if (val >= 10 && val <= 300) {
+            allPrices.push(val);
+          }
+        }
+      }
+    }
+    if (allPrices.length > 0) {
+      allPrices.sort((a, b) => b - a);
+      result.totalPrice = allPrices[0];
+    }
+  }
+
+  // 5. Dopočítanie chýbajúcich hodnôt ak máme sumu a objem/cenu
+  if (result.totalPrice && result.liters && !result.pricePerL && result.liters > 0) {
+    result.pricePerL = parseFloat((result.totalPrice / result.liters).toFixed(3));
+  } else if (result.totalPrice && result.pricePerL && !result.liters && result.pricePerL > 0) {
+    result.liters = parseFloat((result.totalPrice / result.pricePerL).toFixed(2));
+  }
+
+  return result;
+}
+
+async function runOcrOnReceipt(imageSource, statusEl, textEl) {
+  if (statusEl) {
+    statusEl.style.display = 'flex';
+    statusEl.classList.remove('error');
+    if (textEl) textEl.textContent = '⏳ Pripravujem OCR model...';
+  }
+
+  try {
+    let TesseractLib = window.Tesseract;
+    if (!TesseractLib) {
+      if (textEl) textEl.textContent = '⏳ Načítavam knižnicu Tesseract...';
+      const mod = await import('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js');
+      TesseractLib = mod.default || mod;
+    }
+
+    if (textEl) textEl.textContent = '🔍 Analyzujem text bločku...';
+
+    const result = await TesseractLib.recognize(imageSource, 'slk+eng', {
+      logger: m => {
+        if (m.status === 'recognizing text' && textEl) {
+          const pct = Math.round((m.progress || 0) * 100);
+          textEl.textContent = `🔍 Rozpoznávam text z bločku... ${pct}%`;
+        }
+      }
+    });
+
+    const parsed = parseReceiptText(result.data.text);
+    return { success: true, parsed, rawText: result.data.text };
+  } catch (err) {
+    console.error('OCR Error:', err);
+    if (statusEl) {
+      statusEl.classList.add('error');
+      if (textEl) textEl.textContent = '⚠️ Nepodarilo sa vyčítať text z bločku.';
+    }
+    return { success: false, error: err };
+  }
+}
+
+function applyParsedDataToForm(parsed, isEdit = false) {
+  const prefix = isEdit ? 'edit-refuel-' : 'refuel-';
+  let filledFields = [];
+
+  if (parsed.date) {
+    const el = document.getElementById(prefix + 'date');
+    if (el) {
+      el.value = parsed.date;
+      el.classList.add('ocr-auto-filled');
+      setTimeout(() => el.classList.remove('ocr-auto-filled'), 2000);
+      filledFields.push('Dátum: ' + formatDate(parsed.date));
+    }
+  }
+
+  if (parsed.totalPrice) {
+    const el = document.getElementById(prefix + 'total-price');
+    if (el) {
+      el.value = parsed.totalPrice.toFixed(2);
+      el.classList.add('ocr-auto-filled');
+      setTimeout(() => el.classList.remove('ocr-auto-filled'), 2000);
+      filledFields.push('Suma: ' + parsed.totalPrice.toFixed(2) + ' €');
+    }
+  }
+
+  if (parsed.liters) {
+    const el = document.getElementById(prefix + 'liters');
+    if (el) {
+      el.value = parsed.liters.toFixed(2);
+      el.classList.add('ocr-auto-filled');
+      setTimeout(() => el.classList.remove('ocr-auto-filled'), 2000);
+      filledFields.push('Objem: ' + parsed.liters.toFixed(2) + ' l');
+    }
+  }
+
+  if (parsed.pricePerL) {
+    const el = document.getElementById(prefix + 'price-per-l');
+    if (el) {
+      el.value = parsed.pricePerL.toFixed(3);
+      el.classList.add('ocr-auto-filled');
+      setTimeout(() => el.classList.remove('ocr-auto-filled'), 2000);
+    }
+  }
+
+  if (parsed.station) {
+    const el = document.getElementById(prefix + 'station');
+    if (el) {
+      el.value = parsed.station;
+      el.classList.add('ocr-auto-filled');
+      setTimeout(() => el.classList.remove('ocr-auto-filled'), 2000);
+      filledFields.push('Čerpačka: ' + parsed.station);
+    }
+  }
+
+  return filledFields;
 }
 
 // Toast
@@ -1162,10 +1463,43 @@ function initEventListeners() {
         currentRefuelReceipt = compressedBase64;
         if (imgRefuelReceiptPreview) imgRefuelReceiptPreview.src = compressedBase64;
         if (containerRefuelReceiptPreview) containerRefuelReceiptPreview.style.display = 'block';
+        if (btnRefuelRerunOcr) btnRefuelRerunOcr.style.display = 'inline-flex';
         showToast('📷 Bloček bol pripojený!');
+
+        // Ak je zaškrtnutá kolonka OCR, automaticky vyčítame údaje
+        if (checkRefuelEnableOcr && checkRefuelEnableOcr.checked) {
+          const ocrRes = await runOcrOnReceipt(compressedBase64, elRefuelOcrStatus, elRefuelOcrText);
+          if (ocrRes.success) {
+            const filled = applyParsedDataToForm(ocrRes.parsed, false);
+            if (filled.length > 0) {
+              if (elRefuelOcrText) elRefuelOcrText.textContent = `✅ Vyčítané údaje: ${filled.join(', ')}`;
+              showToast('🤖 Údaje z bločku boli úspešne načítané!');
+            } else {
+              if (elRefuelOcrText) elRefuelOcrText.textContent = 'ℹ️ Bloček prečítaný, ale údaje doplň manuálne.';
+            }
+          }
+        } else {
+          if (elRefuelOcrStatus) elRefuelOcrStatus.style.display = 'none';
+        }
       } catch (err) {
         console.error('Chyba pri spracovaní obrázka:', err);
         showToast('❌ Nepodarilo sa načítať obrázok.');
+      }
+    });
+  }
+
+  if (btnRefuelRerunOcr) {
+    btnRefuelRerunOcr.addEventListener('click', async () => {
+      if (!currentRefuelReceipt) return;
+      const ocrRes = await runOcrOnReceipt(currentRefuelReceipt, elRefuelOcrStatus, elRefuelOcrText);
+      if (ocrRes.success) {
+        const filled = applyParsedDataToForm(ocrRes.parsed, false);
+        if (filled.length > 0) {
+          if (elRefuelOcrText) elRefuelOcrText.textContent = `✅ Vyčítané údaje: ${filled.join(', ')}`;
+          showToast('🤖 Údaje z bločku boli úspešne načítané!');
+        } else {
+          if (elRefuelOcrText) elRefuelOcrText.textContent = 'ℹ️ Bloček prečítaný, ale údaje doplň manuálne.';
+        }
       }
     });
   }
@@ -1176,6 +1510,8 @@ function initEventListeners() {
       if (inputRefuelReceipt) inputRefuelReceipt.value = '';
       if (imgRefuelReceiptPreview) imgRefuelReceiptPreview.src = '';
       if (containerRefuelReceiptPreview) containerRefuelReceiptPreview.style.display = 'none';
+      if (elRefuelOcrStatus) elRefuelOcrStatus.style.display = 'none';
+      if (btnRefuelRerunOcr) btnRefuelRerunOcr.style.display = 'none';
       showToast('🗑️ Bloček bol odstránený.');
     });
   }
@@ -1437,6 +1773,8 @@ async function saveRefuel() {
   if (inputRefuelReceipt) inputRefuelReceipt.value = '';
   if (containerRefuelReceiptPreview) containerRefuelReceiptPreview.style.display = 'none';
   if (imgRefuelReceiptPreview) imgRefuelReceiptPreview.src = '';
+  if (elRefuelOcrStatus) elRefuelOcrStatus.style.display = 'none';
+  if (btnRefuelRerunOcr) btnRefuelRerunOcr.style.display = 'none';
 }
 
 async function deleteTrip(tripId, docId) {
@@ -1632,6 +1970,11 @@ function openEditRefuel(refuelId, docId) {
       imgEditRefuelReceiptPreview.src = '';
       containerEditRefuelReceiptPreview.style.display = 'none';
     }
+  }
+
+  if (elEditRefuelOcrStatus) elEditRefuelOcrStatus.style.display = 'none';
+  if (btnEditRefuelRerunOcr) {
+    btnEditRefuelRerunOcr.style.display = editRefuelReceipt ? 'inline-flex' : 'none';
   }
 
   if (modal) modal.classList.add('open');
@@ -1995,10 +2338,43 @@ function initEditModals() {
         editRefuelReceipt = compressedBase64;
         if (imgEditRefuelReceiptPreview) imgEditRefuelReceiptPreview.src = compressedBase64;
         if (containerEditRefuelReceiptPreview) containerEditRefuelReceiptPreview.style.display = 'block';
+        if (btnEditRefuelRerunOcr) btnEditRefuelRerunOcr.style.display = 'inline-flex';
         showToast('📷 Bloček bol pripojený k úprave!');
+
+        // Ak je zaškrtnutá kolonka OCR v úprave, automaticky vyčítame údaje
+        if (checkEditRefuelEnableOcr && checkEditRefuelEnableOcr.checked) {
+          const ocrRes = await runOcrOnReceipt(compressedBase64, elEditRefuelOcrStatus, elEditRefuelOcrText);
+          if (ocrRes.success) {
+            const filled = applyParsedDataToForm(ocrRes.parsed, true);
+            if (filled.length > 0) {
+              if (elEditRefuelOcrText) elEditRefuelOcrText.textContent = `✅ Vyčítané údaje: ${filled.join(', ')}`;
+              showToast('🤖 Údaje z bločku boli úspešne načítané!');
+            } else {
+              if (elEditRefuelOcrText) elEditRefuelOcrText.textContent = 'ℹ️ Bloček prečítaný, ale údaje doplň manuálne.';
+            }
+          }
+        } else {
+          if (elEditRefuelOcrStatus) elEditRefuelOcrStatus.style.display = 'none';
+        }
       } catch (err) {
         console.error('Chyba pri spracovaní obrázka:', err);
         showToast('❌ Nepodarilo sa načítať obrázok.');
+      }
+    });
+  }
+
+  if (btnEditRefuelRerunOcr) {
+    btnEditRefuelRerunOcr.addEventListener('click', async () => {
+      if (!editRefuelReceipt) return;
+      const ocrRes = await runOcrOnReceipt(editRefuelReceipt, elEditRefuelOcrStatus, elEditRefuelOcrText);
+      if (ocrRes.success) {
+        const filled = applyParsedDataToForm(ocrRes.parsed, true);
+        if (filled.length > 0) {
+          if (elEditRefuelOcrText) elEditRefuelOcrText.textContent = `✅ Vyčítané údaje: ${filled.join(', ')}`;
+          showToast('🤖 Údaje z bločku boli úspešne načítané!');
+        } else {
+          if (elEditRefuelOcrText) elEditRefuelOcrText.textContent = 'ℹ️ Bloček prečítaný, ale údaje doplň manuálne.';
+        }
       }
     });
   }
@@ -2009,6 +2385,8 @@ function initEditModals() {
       if (inputEditRefuelReceipt) inputEditRefuelReceipt.value = '';
       if (imgEditRefuelReceiptPreview) imgEditRefuelReceiptPreview.src = '';
       if (containerEditRefuelReceiptPreview) containerEditRefuelReceiptPreview.style.display = 'none';
+      if (elEditRefuelOcrStatus) elEditRefuelOcrStatus.style.display = 'none';
+      if (btnEditRefuelRerunOcr) btnEditRefuelRerunOcr.style.display = 'none';
       showToast('🗑️ Bloček bol z úpravy odstránený.');
     });
   }

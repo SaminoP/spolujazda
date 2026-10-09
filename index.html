@@ -406,6 +406,12 @@
           <button type="button" class="btn-secondary btn-receipt-upload" id="btn-refuel-receipt-trigger">
             <span>📷</span> Odfotiť alebo nahrať bloček
           </button>
+          <div class="form-group" style="margin-top: 8px; margin-bottom: 6px;">
+            <label class="form-checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent-emerald);">
+              <input type="checkbox" id="refuel-enable-ocr" checked style="width: 17px; height: 17px; accent-color: var(--accent-emerald); cursor: pointer;">
+              <span>🤖 Automaticky vyčítať údaje z bločku (OCR)</span>
+            </label>
+          </div>
           <div id="refuel-receipt-preview-container" class="receipt-preview-container" style="display: none;">
             <div class="receipt-preview-card">
               <img id="refuel-receipt-preview-img" src="" alt="Náhľad bločku" class="receipt-preview-thumbnail">
@@ -414,6 +420,13 @@
                 <button type="button" class="receipt-remove-btn" id="btn-remove-refuel-receipt">Odstrániť ✕</button>
               </div>
             </div>
+            <div id="refuel-receipt-ocr-status" class="receipt-ocr-status" style="display: none;">
+              <span class="ocr-spinner"></span>
+              <span id="refuel-receipt-ocr-text">Spracovávam bloček pomocou OCR...</span>
+            </div>
+            <button type="button" class="btn-secondary" id="btn-refuel-rerun-ocr" style="display: none; margin-top: 8px; padding: 8px 12px; font-size: 13px;">
+              🔍 Znova vyčítať údaje z bločku (OCR)
+            </button>
           </div>
         </div>
 
@@ -847,6 +860,12 @@
           <button type="button" class="btn-secondary btn-receipt-upload" id="btn-edit-refuel-receipt-trigger">
             <span>📷</span> Zmeniť alebo pridať bloček
           </button>
+          <div class="form-group" style="margin-top: 8px; margin-bottom: 6px;">
+            <label class="form-checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent-emerald);">
+              <input type="checkbox" id="edit-refuel-enable-ocr" checked style="width: 17px; height: 17px; accent-color: var(--accent-emerald); cursor: pointer;">
+              <span>🤖 Automaticky vyčítať údaje z bločku (OCR)</span>
+            </label>
+          </div>
           <div id="edit-refuel-receipt-preview-container" class="receipt-preview-container" style="display: none;">
             <div class="receipt-preview-card">
               <img id="edit-refuel-receipt-preview-img" src="" alt="Náhľad bločku" class="receipt-preview-thumbnail">
@@ -855,6 +874,13 @@
                 <button type="button" class="receipt-remove-btn" id="btn-remove-edit-refuel-receipt">Odstrániť ✕</button>
               </div>
             </div>
+            <div id="edit-refuel-receipt-ocr-status" class="receipt-ocr-status" style="display: none;">
+              <span class="ocr-spinner"></span>
+              <span id="edit-refuel-receipt-ocr-text">Spracovávam bloček pomocou OCR...</span>
+            </div>
+            <button type="button" class="btn-secondary" id="btn-edit-refuel-rerun-ocr" style="display: none; margin-top: 8px; padding: 8px 12px; font-size: 13px;">
+              🔍 Znova vyčítať údaje z bločku (OCR)
+            </button>
           </div>
         </div>
 
@@ -893,6 +919,7 @@
     <span id="toast-message">Notifikácia</span>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

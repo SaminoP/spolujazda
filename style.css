@@ -1199,3 +1199,56 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(56, 189, 248, 0.2);
 }
+
+/* OCR Receipt Status & Highlighting */
+.receipt-ocr-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #34D399;
+  margin-top: 8px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.receipt-ocr-status.error {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.35);
+  color: #FB7185;
+}
+
+.ocr-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(52, 211, 153, 0.3);
+  border-top-color: #34D399;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ocrGlow {
+  0% {
+    border-color: #38BDF8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.45);
+  }
+  100% {
+    border-color: var(--border-color);
+    box-shadow: none;
+  }
+}
+
+.ocr-auto-filled {
+  animation: ocrGlow 2s ease-out;
+}
+
