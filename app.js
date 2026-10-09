@@ -121,6 +121,76 @@ const inputRefuelStation = document.getElementById('refuel-station');
 const inputRefuelOdometer = document.getElementById('refuel-odometer');
 const btnSaveRefuel = document.getElementById('btn-save-refuel');
 
+// Receipt Photo State & Elements
+let currentRefuelReceipt = null;
+let editRefuelReceipt = null;
+
+const inputRefuelReceipt = document.getElementById('refuel-receipt-input');
+const btnRefuelReceiptTrigger = document.getElementById('btn-refuel-receipt-trigger');
+const containerRefuelReceiptPreview = document.getElementById('refuel-receipt-preview-container');
+const imgRefuelReceiptPreview = document.getElementById('refuel-receipt-preview-img');
+const btnRemoveRefuelReceipt = document.getElementById('btn-remove-refuel-receipt');
+
+const inputEditRefuelReceipt = document.getElementById('edit-refuel-receipt-input');
+const btnEditRefuelReceiptTrigger = document.getElementById('btn-edit-refuel-receipt-trigger');
+const containerEditRefuelReceiptPreview = document.getElementById('edit-refuel-receipt-preview-container');
+const imgEditRefuelReceiptPreview = document.getElementById('edit-refuel-receipt-preview-img');
+const btnRemoveEditRefuelReceipt = document.getElementById('btn-remove-edit-refuel-receipt');
+
+const modalReceipt = document.getElementById('receipt-modal');
+const modalReceiptTitle = document.getElementById('receipt-modal-title');
+const modalReceiptImg = document.getElementById('receipt-modal-img');
+const btnCloseReceiptModal = document.getElementById('btn-close-receipt-modal');
+
+function compressImageFile(file, maxWidth = 1000, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) {
+      return reject(new Error('Vybraný súbor nie je obrázok.'));
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Chyba pri čítaní súboru.'));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Chyba pri načítaní obrázka.'));
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function openReceiptModal(refuelId, docId) {
+  const refuel = state.refuels.find(r => (docId && r.docId === docId) || r.id === refuelId);
+  if (!refuel || !refuel.receiptImage) {
+    showToast('⚠️ Fotka bločku sa nenašla.');
+    return;
+  }
+  if (modalReceiptImg) modalReceiptImg.src = refuel.receiptImage;
+  if (modalReceiptTitle) {
+    modalReceiptTitle.textContent = `🧾 Bloček – ${refuel.station} (${formatDate(refuel.date)})`;
+  }
+  if (modalReceipt) modalReceipt.classList.add('open');
+}
+
 // Toast
 const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toast-message');
@@ -1069,6 +1139,66 @@ function initEventListeners() {
 
   btnSaveRefuel.addEventListener('click', saveRefuel);
 
+  // Refuel receipt picker events
+  if (btnRefuelReceiptTrigger && inputRefuelReceipt) {
+    btnRefuelReceiptTrigger.addEventListener('click', () => {
+      inputRefuelReceipt.click();
+    });
+  }
+
+  if (inputRefuelReceipt) {
+    inputRefuelReceipt.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        showToast('⏳ Spracovávam fotku bločku...');
+        const compressedBase64 = await compressImageFile(file, 1000, 0.7);
+        currentRefuelReceipt = compressedBase64;
+        if (imgRefuelReceiptPreview) imgRefuelReceiptPreview.src = compressedBase64;
+        if (containerRefuelReceiptPreview) containerRefuelReceiptPreview.style.display = 'block';
+        showToast('📷 Bloček bol pripojený!');
+      } catch (err) {
+        console.error('Chyba pri spracovaní obrázka:', err);
+        showToast('❌ Nepodarilo sa načítať obrázok.');
+      }
+    });
+  }
+
+  if (btnRemoveRefuelReceipt) {
+    btnRemoveRefuelReceipt.addEventListener('click', () => {
+      currentRefuelReceipt = null;
+      if (inputRefuelReceipt) inputRefuelReceipt.value = '';
+      if (imgRefuelReceiptPreview) imgRefuelReceiptPreview.src = '';
+      if (containerRefuelReceiptPreview) containerRefuelReceiptPreview.style.display = 'none';
+      showToast('🗑️ Bloček bol odstránený.');
+    });
+  }
+
+  if (imgRefuelReceiptPreview) {
+    imgRefuelReceiptPreview.addEventListener('click', () => {
+      if (currentRefuelReceipt && modalReceipt && modalReceiptImg) {
+        modalReceiptImg.src = currentRefuelReceipt;
+        if (modalReceiptTitle) modalReceiptTitle.textContent = '🧾 Náhľad nového bločku';
+        modalReceipt.classList.add('open');
+      }
+    });
+  }
+
+  // Lightbox modal close listeners
+  if (btnCloseReceiptModal) {
+    btnCloseReceiptModal.addEventListener('click', () => {
+      if (modalReceipt) modalReceipt.classList.remove('open');
+    });
+  }
+
+  if (modalReceipt) {
+    modalReceipt.addEventListener('click', (e) => {
+      if (e.target === modalReceipt) {
+        modalReceipt.classList.remove('open');
+      }
+    });
+  }
+
   const btnExport = document.getElementById('btn-export-data');
   if (btnExport) btnExport.addEventListener('click', exportData);
 
@@ -1264,7 +1394,8 @@ async function saveRefuel() {
     liters: liters,
     pricePerL: pricePerL || (liters > 0 ? parseFloat((totalPrice / liters).toFixed(3)) : 0),
     station: station,
-    odometer: odometer
+    odometer: odometer,
+    receiptImage: currentRefuelReceipt || null
   };
 
   if (state.isCloudMode && state.firebaseUser) {
@@ -1291,6 +1422,11 @@ async function saveRefuel() {
   inputRefuelPricePerL.value = '';
   inputRefuelStation.value = '';
   inputRefuelOdometer.value = '';
+
+  currentRefuelReceipt = null;
+  if (inputRefuelReceipt) inputRefuelReceipt.value = '';
+  if (containerRefuelReceiptPreview) containerRefuelReceiptPreview.style.display = 'none';
+  if (imgRefuelReceiptPreview) imgRefuelReceiptPreview.src = '';
 }
 
 async function deleteTrip(tripId, docId) {
@@ -1475,6 +1611,18 @@ function openEditRefuel(refuelId, docId) {
   if (inputOdometer) inputOdometer.value = refuel.odometer || '';
   if (inputStation) inputStation.value = refuel.station || '';
 
+  editRefuelReceipt = refuel.receiptImage || null;
+  if (inputEditRefuelReceipt) inputEditRefuelReceipt.value = '';
+  if (containerEditRefuelReceiptPreview && imgEditRefuelReceiptPreview) {
+    if (editRefuelReceipt) {
+      imgEditRefuelReceiptPreview.src = editRefuelReceipt;
+      containerEditRefuelReceiptPreview.style.display = 'block';
+    } else {
+      imgEditRefuelReceiptPreview.src = '';
+      containerEditRefuelReceiptPreview.style.display = 'none';
+    }
+  }
+
   if (modal) modal.classList.add('open');
 }
 
@@ -1604,7 +1752,8 @@ async function saveEditedRefuel() {
     liters: liters,
     pricePerL: pricePerL || (liters > 0 ? parseFloat((totalPrice / liters).toFixed(3)) : 0),
     station: station,
-    odometer: odometer
+    odometer: odometer,
+    receiptImage: editRefuelReceipt || null
   };
 
   if (state.isCloudMode && state.firebaseUser && docId) {
@@ -1815,6 +1964,50 @@ function initEditModals() {
   if (btnSaveRefuelEdit) {
     btnSaveRefuelEdit.addEventListener('click', saveEditedRefuel);
   }
+
+  if (btnEditRefuelReceiptTrigger && inputEditRefuelReceipt) {
+    btnEditRefuelReceiptTrigger.addEventListener('click', () => {
+      inputEditRefuelReceipt.click();
+    });
+  }
+
+  if (inputEditRefuelReceipt) {
+    inputEditRefuelReceipt.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        showToast('⏳ Spracovávam fotku bločku...');
+        const compressedBase64 = await compressImageFile(file, 1000, 0.7);
+        editRefuelReceipt = compressedBase64;
+        if (imgEditRefuelReceiptPreview) imgEditRefuelReceiptPreview.src = compressedBase64;
+        if (containerEditRefuelReceiptPreview) containerEditRefuelReceiptPreview.style.display = 'block';
+        showToast('📷 Bloček bol pripojený k úprave!');
+      } catch (err) {
+        console.error('Chyba pri spracovaní obrázka:', err);
+        showToast('❌ Nepodarilo sa načítať obrázok.');
+      }
+    });
+  }
+
+  if (btnRemoveEditRefuelReceipt) {
+    btnRemoveEditRefuelReceipt.addEventListener('click', () => {
+      editRefuelReceipt = null;
+      if (inputEditRefuelReceipt) inputEditRefuelReceipt.value = '';
+      if (imgEditRefuelReceiptPreview) imgEditRefuelReceiptPreview.src = '';
+      if (containerEditRefuelReceiptPreview) containerEditRefuelReceiptPreview.style.display = 'none';
+      showToast('🗑️ Bloček bol z úpravy odstránený.');
+    });
+  }
+
+  if (imgEditRefuelReceiptPreview) {
+    imgEditRefuelReceiptPreview.addEventListener('click', () => {
+      if (editRefuelReceipt && modalReceipt && modalReceiptImg) {
+        modalReceiptImg.src = editRefuelReceipt;
+        if (modalReceiptTitle) modalReceiptTitle.textContent = '🧾 Náhľad bločku';
+        modalReceipt.classList.add('open');
+      }
+    });
+  }
 }
 
 // ================= RENDERING =================
@@ -1872,6 +2065,7 @@ function renderFuelTab() {
           ${r.liters > 0 ? `<span>💧 ${r.liters.toFixed(1)} l</span>` : ''}
           ${r.pricePerL > 0 ? `<span>💶 ${r.pricePerL.toFixed(3)} €/l</span>` : ''}
           ${r.odometer ? `<span>📍 ${r.odometer} km</span>` : ''}
+          ${r.receiptImage ? `<button type="button" class="receipt-view-btn" onclick="window.appViewReceipt(${r.id}, '${r.docId || ''}')">🧾 Bloček</button>` : ''}
         </div>
       </div>
       <div class="trip-right">
@@ -1978,6 +2172,7 @@ function renderHistory() {
               ${item.liters > 0 ? `<span>💧 ${item.liters.toFixed(1)} l</span>` : ''}
               ${item.pricePerL > 0 ? `<span>💶 ${item.pricePerL.toFixed(3)} €/l</span>` : ''}
               ${item.odometer ? `<span>📍 ${item.odometer} km</span>` : ''}
+              ${item.receiptImage ? `<button type="button" class="receipt-view-btn" onclick="window.appViewReceipt(${item.id}, '${item.docId || ''}')">🧾 Bloček</button>` : ''}
             </div>
           </div>
           <div class="trip-right">
@@ -2179,3 +2374,4 @@ window.appDeleteRefuel = deleteRefuel;
 window.appEditTrip = openEditTrip;
 window.appEditRefuel = openEditRefuel;
 window.appMarkTransferCompleted = markTransferCompleted;
+window.appViewReceipt = openReceiptModal;

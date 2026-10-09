@@ -387,6 +387,26 @@
           </div>
         </div>
 
+        <div class="form-group" style="margin-top: 10px;">
+          <label class="form-label">
+            <span>📷 Bloček z tankovania</span>
+            <span class="form-subtext">voliteľné</span>
+          </label>
+          <input type="file" id="refuel-receipt-input" accept="image/*" capture="environment" style="display: none;">
+          <button type="button" class="btn-secondary btn-receipt-upload" id="btn-refuel-receipt-trigger">
+            <span>📷</span> Odfotiť alebo nahrať bloček
+          </button>
+          <div id="refuel-receipt-preview-container" class="receipt-preview-container" style="display: none;">
+            <div class="receipt-preview-card">
+              <img id="refuel-receipt-preview-img" src="" alt="Náhľad bločku" class="receipt-preview-thumbnail">
+              <div class="receipt-preview-info">
+                <span class="receipt-preview-text">Bloček pripravený</span>
+                <button type="button" class="receipt-remove-btn" id="btn-remove-refuel-receipt">Odstrániť ✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <button type="button" id="btn-save-refuel" class="btn-primary" style="margin-top: 14px;">
           <span>⛽</span> Uložiť tankovanie
         </button>
@@ -808,10 +828,43 @@
           </div>
         </div>
 
+        <div class="form-group" style="margin-top: 10px;">
+          <label class="form-label">
+            <span>📷 Bloček z tankovania</span>
+            <span class="form-subtext">voliteľné</span>
+          </label>
+          <input type="file" id="edit-refuel-receipt-input" accept="image/*" capture="environment" style="display: none;">
+          <button type="button" class="btn-secondary btn-receipt-upload" id="btn-edit-refuel-receipt-trigger">
+            <span>📷</span> Zmeniť alebo pridať bloček
+          </button>
+          <div id="edit-refuel-receipt-preview-container" class="receipt-preview-container" style="display: none;">
+            <div class="receipt-preview-card">
+              <img id="edit-refuel-receipt-preview-img" src="" alt="Náhľad bločku" class="receipt-preview-thumbnail">
+              <div class="receipt-preview-info">
+                <span class="receipt-preview-text">Bloček priložený</span>
+                <button type="button" class="receipt-remove-btn" id="btn-remove-edit-refuel-receipt">Odstrániť ✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <button type="button" id="btn-save-edit-refuel" class="btn-primary" style="margin-top: 16px;">
           💾 Uložiť zmeny tankovania
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Prehliadač bločku (Lightbox) -->
+  <div class="modal-overlay" id="receipt-modal">
+    <div class="modal-card receipt-modal-card">
+      <div class="modal-header">
+        <h3 id="receipt-modal-title">🧾 Bloček z tankovania</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-receipt-modal">✕</button>
+      </div>
+      <div class="receipt-modal-body">
+        <img id="receipt-modal-img" src="" alt="Bloček z tankovania" class="receipt-modal-image">
+      </div>
     </div>
   </div>
 
