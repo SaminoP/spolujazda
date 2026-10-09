@@ -120,6 +120,8 @@ const inputRefuelPricePerL = document.getElementById('refuel-price-per-l');
 const inputRefuelStation = document.getElementById('refuel-station');
 const inputRefuelOdometer = document.getElementById('refuel-odometer');
 const btnSaveRefuel = document.getElementById('btn-save-refuel');
+const checkRefuelPaidFromAccount = document.getElementById('refuel-paid-from-account');
+const checkEditRefuelPaidFromAccount = document.getElementById('edit-refuel-paid-from-account');
 
 // Receipt Photo State & Elements
 let currentRefuelReceipt = null;
@@ -793,10 +795,14 @@ function saveLocalStoredTransfers(transfers) {
 // ================= BANK TRANSFERS LOGIC =================
 function getPendingTransferAmount() {
   const trips = state.trips || [];
+  const refuels = state.refuels || [];
   const transfers = state.transfers || [];
   const totalIncome = trips.reduce((sum, t) => sum + (t.totalFare || t.netProfit || 0), 0);
+  const totalFuelFromAccount = refuels
+    .filter(r => r.paidFromAccount)
+    .reduce((sum, r) => sum + (r.totalPrice || 0), 0);
   const totalTransferred = transfers.reduce((sum, tr) => sum + (tr.amount || 0), 0);
-  return Math.max(0, parseFloat((totalIncome - totalTransferred).toFixed(2)));
+  return Math.max(0, parseFloat((totalIncome - totalFuelFromAccount - totalTransferred).toFixed(2)));
 }
 
 async function markTransferCompleted() {
@@ -1386,6 +1392,8 @@ async function saveRefuel() {
     return;
   }
 
+  const paidFromAccount = checkRefuelPaidFromAccount ? checkRefuelPaidFromAccount.checked : false;
+
   const refuel = {
     id: Date.now(),
     type: 'fuel',
@@ -1395,7 +1403,8 @@ async function saveRefuel() {
     pricePerL: pricePerL || (liters > 0 ? parseFloat((totalPrice / liters).toFixed(3)) : 0),
     station: station,
     odometer: odometer,
-    receiptImage: currentRefuelReceipt || null
+    receiptImage: currentRefuelReceipt || null,
+    paidFromAccount: paidFromAccount
   };
 
   if (state.isCloudMode && state.firebaseUser) {
@@ -1422,6 +1431,7 @@ async function saveRefuel() {
   inputRefuelPricePerL.value = '';
   inputRefuelStation.value = '';
   inputRefuelOdometer.value = '';
+  if (checkRefuelPaidFromAccount) checkRefuelPaidFromAccount.checked = false;
 
   currentRefuelReceipt = null;
   if (inputRefuelReceipt) inputRefuelReceipt.value = '';
@@ -1610,6 +1620,7 @@ function openEditRefuel(refuelId, docId) {
   if (inputPricePerL) inputPricePerL.value = refuel.pricePerL !== undefined ? refuel.pricePerL : '';
   if (inputOdometer) inputOdometer.value = refuel.odometer || '';
   if (inputStation) inputStation.value = refuel.station || '';
+  if (checkEditRefuelPaidFromAccount) checkEditRefuelPaidFromAccount.checked = !!refuel.paidFromAccount;
 
   editRefuelReceipt = refuel.receiptImage || null;
   if (inputEditRefuelReceipt) inputEditRefuelReceipt.value = '';
@@ -1744,6 +1755,8 @@ async function saveEditedRefuel() {
     return;
   }
 
+  const paidFromAccount = checkEditRefuelPaidFromAccount ? checkEditRefuelPaidFromAccount.checked : false;
+
   const updatedRefuel = {
     id: refuelId,
     type: 'fuel',
@@ -1753,7 +1766,8 @@ async function saveEditedRefuel() {
     pricePerL: pricePerL || (liters > 0 ? parseFloat((totalPrice / liters).toFixed(3)) : 0),
     station: station,
     odometer: odometer,
-    receiptImage: editRefuelReceipt || null
+    receiptImage: editRefuelReceipt || null,
+    paidFromAccount: paidFromAccount
   };
 
   if (state.isCloudMode && state.firebaseUser && docId) {
@@ -2065,6 +2079,7 @@ function renderFuelTab() {
           ${r.liters > 0 ? `<span>💧 ${r.liters.toFixed(1)} l</span>` : ''}
           ${r.pricePerL > 0 ? `<span>💶 ${r.pricePerL.toFixed(3)} €/l</span>` : ''}
           ${r.odometer ? `<span>📍 ${r.odometer} km</span>` : ''}
+          ${r.paidFromAccount ? `<span>💳 Z účtu</span>` : ''}
           ${r.receiptImage ? `<button type="button" class="receipt-view-btn" onclick="window.appViewReceipt(${r.id}, '${r.docId || ''}')">🧾 Bloček</button>` : ''}
         </div>
       </div>
@@ -2172,6 +2187,7 @@ function renderHistory() {
               ${item.liters > 0 ? `<span>💧 ${item.liters.toFixed(1)} l</span>` : ''}
               ${item.pricePerL > 0 ? `<span>💶 ${item.pricePerL.toFixed(3)} €/l</span>` : ''}
               ${item.odometer ? `<span>📍 ${item.odometer} km</span>` : ''}
+              ${item.paidFromAccount ? `<span>💳 Z účtu</span>` : ''}
               ${item.receiptImage ? `<button type="button" class="receipt-view-btn" onclick="window.appViewReceipt(${item.id}, '${item.docId || ''}')">🧾 Bloček</button>` : ''}
             </div>
           </div>
