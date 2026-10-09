@@ -118,6 +118,14 @@
         </div>
       </div>
 
+      <!-- Rýchly indikátor neodoslaných peňazí z účtu spolujázd -->
+      <div id="quick-transfer-box" style="display: flex; align-items: center; justify-content: space-between; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 14px; padding: 10px 16px; margin-bottom: 16px; cursor: pointer;" title="Kliknutím prejdeš do Peňaženky">
+        <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+          <span>🏦</span> Na odoslanie na osobný účet:
+        </span>
+        <span id="quick-pending-transfer" style="font-size: 15px; font-weight: 800; color: var(--accent-emerald);">0.00 €</span>
+      </div>
+
       <!-- Card: Trasa & Vzdialenosť -->
       <div class="card">
         <div class="card-title">
@@ -434,6 +442,35 @@
             <span class="detail-label">Zisk z jázd</span>
             <span id="stat-trips-profit" class="detail-value">+0.00 €</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Karta: Prevod z bankového účtu spolujázd na normálny účet -->
+      <div class="card" style="margin-bottom: 16px; border: 1px solid rgba(56, 189, 248, 0.35); background: linear-gradient(145deg, rgba(14, 26, 48, 0.95), rgba(7, 14, 28, 0.98));">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+          <div class="card-title" style="margin: 0;">
+            <span class="icon">🏦</span> Prevod na osobný účet
+          </div>
+          <span style="font-size: 11px; padding: 3px 8px; border-radius: 12px; background: rgba(56, 189, 248, 0.15); color: #38BDF8; font-weight: 700;">
+            Spolujazdy ➔ Osobný účet
+          </span>
+        </div>
+        
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4;">
+          Peniaze prijaté od cestujúcich, ktoré máš poslať z bankového účtu spolujázd na svoj bežný účet:
+        </p>
+
+        <div style="display: flex; align-items: baseline; justify-content: space-between; background: var(--bg-card-hover); border-radius: 14px; padding: 14px 18px; margin-bottom: 12px; border: 1px solid var(--border-color);">
+          <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Na odoslanie:</span>
+          <span id="stat-pending-transfer" style="font-size: 32px; font-weight: 900; color: var(--accent-emerald); font-variant-numeric: tabular-nums;">0.00 €</span>
+        </div>
+
+        <button type="button" id="btn-reset-transfer" class="btn-primary" style="background: linear-gradient(135deg, #0284C7, #2563EB); display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>💸</span> Označiť ako odoslané (vynulovať)
+        </button>
+
+        <div id="transfer-last-info" style="font-size: 11px; color: var(--text-muted); margin-top: 10px; text-align: center;">
+          Zatiaľ žiadny zaznamenaný prevod.
         </div>
       </div>
 

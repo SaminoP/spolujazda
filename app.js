@@ -19,6 +19,7 @@ let state = {
   firebaseUser: null,
   firestoreTripsUnsub: null,
   firestoreRefuelsUnsub: null,
+  firestoreTransfersUnsub: null,
 
   currentUser: null,
   authMode: 'login', // 'login' or 'register'
@@ -41,9 +42,10 @@ let state = {
   discountNote: '',
   totalPassengerFare: 22.50,
 
-  // In-memory cache for trips and refuels
+  // In-memory cache for trips, refuels and bank transfers
   trips: [],
-  refuels: []
+  refuels: [],
+  transfers: []
 };
 
 // DOM Elements - Auth & Header
@@ -493,10 +495,12 @@ function handleCloudUserLoggedOut() {
   state.currentUser = null;
   state.trips = [];
   state.refuels = [];
+  state.transfers = [];
 
   // Unsubscribe listeners
   if (state.firestoreTripsUnsub) state.firestoreTripsUnsub();
   if (state.firestoreRefuelsUnsub) state.firestoreRefuelsUnsub();
+  if (state.firestoreTransfersUnsub) state.firestoreTransfersUnsub();
 
   appMain.style.display = 'none';
   appNav.style.display = 'none';
@@ -537,6 +541,20 @@ async function setupFirestoreListeners(uid) {
     renderStats();
   }, (err) => {
     console.error('Firestore Refuels error:', err);
+  });
+
+  // Transfers real-time sync
+  const transfersRef = collection(state.firebaseDb, 'users', uid, 'transfers');
+  const transfersQuery = query(transfersRef, orderBy('id', 'desc'));
+
+  state.firestoreTransfersUnsub = onSnapshot(transfersQuery, (snapshot) => {
+    state.transfers = snapshot.docs.map(doc => ({
+      docId: doc.id,
+      ...doc.data()
+    }));
+    renderStats();
+  }, (err) => {
+    console.error('Firestore Transfers error:', err);
   });
 }
 
@@ -612,6 +630,7 @@ function loginLocalUser(user) {
 
   state.trips = getLocalStoredTrips();
   state.refuels = getLocalStoredRefuels();
+  state.transfers = getLocalStoredTransfers();
 
   recalculateTrip();
   renderFuelTab();
@@ -658,6 +677,10 @@ function getLocalRefuelsKey() {
   return state.currentUser ? `spolujazda_refuels_${state.currentUser}` : 'spolujazda_refuels';
 }
 
+function getLocalTransfersKey() {
+  return state.currentUser ? `spolujazda_transfers_${state.currentUser}` : 'spolujazda_transfers';
+}
+
 function getLocalStoredTrips() {
   try {
     const raw = localStorage.getItem(getLocalTripsKey());
@@ -682,6 +705,62 @@ function getLocalStoredRefuels() {
 
 function saveLocalStoredRefuels(refuels) {
   localStorage.setItem(getLocalRefuelsKey(), JSON.stringify(refuels));
+}
+
+function getLocalStoredTransfers() {
+  try {
+    const raw = localStorage.getItem(getLocalTransfersKey());
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveLocalStoredTransfers(transfers) {
+  localStorage.setItem(getLocalTransfersKey(), JSON.stringify(transfers));
+}
+
+// ================= BANK TRANSFERS LOGIC =================
+function getPendingTransferAmount() {
+  const trips = state.trips || [];
+  const transfers = state.transfers || [];
+  const totalIncome = trips.reduce((sum, t) => sum + (t.totalFare || t.netProfit || 0), 0);
+  const totalTransferred = transfers.reduce((sum, tr) => sum + (tr.amount || 0), 0);
+  return Math.max(0, parseFloat((totalIncome - totalTransferred).toFixed(2)));
+}
+
+async function markTransferCompleted() {
+  const pending = getPendingTransferAmount();
+  if (pending <= 0) {
+    showToast('ℹ️ Nemáš žiadne nevyplatené peniaze na odoslanie (0.00 €).');
+    return;
+  }
+
+  const ok = confirm(`Odoslal si sumu ${pending.toFixed(2)} € na osobný účet?\n\nTýmto sa počítadlo neodoslaných peňazí vynuluje.`);
+  if (!ok) return;
+
+  const transfer = {
+    id: Date.now(),
+    date: new Date().toISOString(),
+    amount: pending
+  };
+
+  if (state.isCloudMode && state.firebaseUser) {
+    try {
+      const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await addDoc(collection(state.firebaseDb, 'users', state.firebaseUser.uid, 'transfers'), transfer);
+      showToast(`✅ Prevod ${pending.toFixed(2)} € zaznamenaný v Cloude! Počítadlo bolo vynulované.`);
+    } catch (e) {
+      console.error('Chyba pri ukladaní prevodu do Cloudu:', e);
+      showToast('❌ Chyba pri ukladaní prevodu do Cloudu.');
+    }
+  } else {
+    state.transfers.unshift(transfer);
+    saveLocalStoredTransfers(state.transfers);
+    showToast(`✅ Prevod ${pending.toFixed(2)} € zaznamenaný! Počítadlo bolo vynulované.`);
+    renderStats();
+    recalculateTrip();
+  }
 }
 
 // ================= APP LISTENERS =================
@@ -995,6 +1074,18 @@ function initEventListeners() {
 
   const fileImport = document.getElementById('file-import-data');
   if (fileImport) fileImport.addEventListener('change', importData);
+
+  const btnResetTransfer = document.getElementById('btn-reset-transfer');
+  if (btnResetTransfer) {
+    btnResetTransfer.addEventListener('click', markTransferCompleted);
+  }
+
+  const quickTransferBox = document.getElementById('quick-transfer-box');
+  if (quickTransferBox) {
+    quickTransferBox.addEventListener('click', () => {
+      switchTab('stats');
+    });
+  }
 }
 
 function recalculateTrip() {
@@ -1026,6 +1117,12 @@ function recalculateTrip() {
       ? state.fuelConsumedLiters
       : parseFloat(((state.distanceKm * (state.fuelConsumption || 6.5)) / 100).toFixed(2));
     displayTripFuel.textContent = `${liters.toFixed(2)} l`;
+  }
+
+  const pendingTransfer = getPendingTransferAmount();
+  const elQuickPendingTransfer = document.getElementById('quick-pending-transfer');
+  if (elQuickPendingTransfer) {
+    elQuickPendingTransfer.textContent = `${pendingTransfer.toFixed(2)} €`;
   }
 }
 
@@ -1976,6 +2073,30 @@ function renderStats() {
   if (elAvgFuelPrice) elAvgFuelPrice.textContent = `${avgFuelPrice.toFixed(3)} €/l`;
   if (elTotalTripsLiters) elTotalTripsLiters.textContent = `${totalTripsLiters.toFixed(1)} l`;
   if (elAvgTripConsumption) elAvgTripConsumption.textContent = `${avgTripConsumption.toFixed(1)} l/100km`;
+
+  const pendingTransfer = getPendingTransferAmount();
+  const elPendingTransfer = document.getElementById('stat-pending-transfer');
+  const elQuickPendingTransfer = document.getElementById('quick-pending-transfer');
+  const elTransferLastInfo = document.getElementById('transfer-last-info');
+
+  if (elPendingTransfer) {
+    elPendingTransfer.textContent = `${pendingTransfer.toFixed(2)} €`;
+  }
+  if (elQuickPendingTransfer) {
+    elQuickPendingTransfer.textContent = `${pendingTransfer.toFixed(2)} €`;
+  }
+  if (elTransferLastInfo) {
+    if (state.transfers && state.transfers.length > 0) {
+      const last = state.transfers[0];
+      const d = new Date(last.date);
+      const dateStr = !isNaN(d.getTime())
+        ? `${d.toLocaleDateString('sk-SK')} ${d.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })}`
+        : formatDate(last.date);
+      elTransferLastInfo.innerHTML = `Posledný prevod: <b style="color:var(--text-primary);">${(last.amount || 0).toFixed(2)} €</b> (${dateStr})`;
+    } else {
+      elTransferLastInfo.textContent = 'Zatiaľ žiadny zaznamenaný prevod.';
+    }
+  }
 }
 
 function exportData() {
@@ -1984,10 +2105,11 @@ function exportData() {
     username: state.currentUser,
     trips: state.trips || [],
     refuels: state.refuels || [],
+    transfers: state.transfers || [],
     exportedAt: new Date().toISOString()
   };
 
-  if (data.trips.length === 0 && data.refuels.length === 0) {
+  if (data.trips.length === 0 && data.refuels.length === 0 && data.transfers.length === 0) {
     showToast('⚠️ Nemáš žiadne dáta na export.');
     return;
   }
@@ -2012,6 +2134,7 @@ async function importData(event) {
       const imported = JSON.parse(e.target.result);
       const tripsToImport = imported.trips || (Array.isArray(imported) ? imported : []);
       const refuelsToImport = imported.refuels || [];
+      const transfersToImport = imported.transfers || [];
 
       if (state.isCloudMode && state.firebaseUser) {
         const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
@@ -2023,16 +2146,23 @@ async function importData(event) {
           delete r.docId;
           await addDoc(collection(state.firebaseDb, 'users', state.firebaseUser.uid, 'refuels'), r);
         }
+        for (const tr of transfersToImport) {
+          delete tr.docId;
+          await addDoc(collection(state.firebaseDb, 'users', state.firebaseUser.uid, 'transfers'), tr);
+        }
         showToast('☁️ Dáta úspešne naimportované do Cloudu!');
       } else {
         // Local mode
         saveLocalStoredTrips(tripsToImport);
         saveLocalStoredRefuels(refuelsToImport);
+        saveLocalStoredTransfers(transfersToImport);
         state.trips = tripsToImport;
         state.refuels = refuelsToImport;
+        state.transfers = transfersToImport;
         renderFuelTab();
         renderHistory();
         renderStats();
+        recalculateTrip();
         showToast('✅ Dáta úspešne obnovené lokálne!');
       }
     } catch (err) {
@@ -2048,3 +2178,4 @@ window.appDeleteTrip = deleteTrip;
 window.appDeleteRefuel = deleteRefuel;
 window.appEditTrip = openEditTrip;
 window.appEditRefuel = openEditRefuel;
+window.appMarkTransferCompleted = markTransferCompleted;
