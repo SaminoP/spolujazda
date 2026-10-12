@@ -296,6 +296,40 @@
         </div>
       </div>
 
+      <!-- Platba v hotovosti (Cash do vrecka) -->
+      <div class="form-group" style="margin-top: 14px; padding: 14px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px;" id="cash-payment-group">
+        <label class="form-checkbox-label" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-bottom: 0;">
+          <input type="checkbox" id="toggle-cash-payment" style="width: 20px; height: 20px; accent-color: var(--accent-emerald); cursor: pointer; margin-top: 2px;">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 14px; font-weight: 700; color: #34D399;">💵 Platba v hotovosti (do ruky)</span>
+            <span class="form-subtext" style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">
+              Peniaze prijaté v hotovosti sa <strong>nezarátajú</strong> do počítadla prevodu na osobný účet.
+            </span>
+          </div>
+        </label>
+
+        <div id="cash-payment-details" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(16, 185, 129, 0.25);">
+          <div class="grid-2">
+            <div class="form-group" id="cash-passengers-count-wrapper">
+              <label class="form-label" for="cash-passengers-count">Počet ľudí v hotovosti</label>
+              <div class="input-wrapper">
+                <input type="number" id="cash-passengers-count" class="input-field" min="1" max="8" value="1">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cash-amount">Suma prijatá v hotovosti</label>
+              <div class="input-wrapper">
+                <input type="number" id="cash-amount" class="input-field" step="0.5" min="0" placeholder="0.00">
+                <span class="input-unit">€</span>
+              </div>
+            </div>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+            💡 Tip: Ak platili všetci v hotovosti, klikni sem alebo uprav sumu podľa skutočnosti.
+          </div>
+        </div>
+      </div>
+
       <!-- Action Buttons -->
       <button type="button" id="btn-save-trip" class="btn-primary">
         <span>💾</span> Uložiť jazdu do histórie
@@ -768,6 +802,37 @@
               <label class="form-label" for="edit-discount-note">Miesto vysadenia / Poznámka</label>
               <div class="input-wrapper">
                 <input type="text" id="edit-discount-note" class="input-field" placeholder="napr. Nové Mesto">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Platba v hotovosti -->
+        <div class="form-group" style="margin-top: 14px; padding: 12px 14px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px;" id="edit-cash-payment-group">
+          <label class="form-checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 0;">
+            <input type="checkbox" id="edit-toggle-cash-payment" style="width: 18px; height: 18px; accent-color: var(--accent-emerald); cursor: pointer; margin-top: 2px;">
+            <div style="display: flex; flex-direction: column;">
+              <span style="font-size: 13px; font-weight: 700; color: #34D399;">💵 Platba v hotovosti (do ruky)</span>
+              <span class="form-subtext" style="color: var(--text-muted); font-size: 11px;">
+                Vynechá hotovosť z počítadla prevodu na osobný účet.
+              </span>
+            </div>
+          </label>
+
+          <div id="edit-cash-payment-details" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(16, 185, 129, 0.25);">
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label" for="edit-cash-passengers-count">Počet ľudí v hotovosti</label>
+                <div class="input-wrapper">
+                  <input type="number" id="edit-cash-passengers-count" class="input-field" min="1" max="8" value="1">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="edit-cash-amount">Suma v hotovosti</label>
+                <div class="input-wrapper">
+                  <input type="number" id="edit-cash-amount" class="input-field" step="0.5" min="0" placeholder="0.00">
+                  <span class="input-unit">€</span>
+                </div>
               </div>
             </div>
           </div>

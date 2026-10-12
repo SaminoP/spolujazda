@@ -40,6 +40,9 @@ let state = {
   discountPassengers: 1,
   discountPrice: 5.00,
   discountNote: '',
+  hasCashPayment: false,
+  cashPassengers: 1,
+  cashAmount: 0.00,
   totalPassengerFare: 22.50,
 
   // In-memory cache for trips, refuels and bank transfers
@@ -98,6 +101,10 @@ const inputDiscountNote = document.getElementById('discount-note');
 const inputTripConsumption = document.getElementById('trip-consumption');
 const inputTripConsumedLiters = document.getElementById('trip-consumed-liters');
 const consumptionPresetBtns = document.querySelectorAll('.consumption-preset-btn');
+const toggleCashPayment = document.getElementById('toggle-cash-payment');
+const cashPaymentDetails = document.getElementById('cash-payment-details');
+const inputCashPassengersCount = document.getElementById('cash-passengers-count');
+const inputCashAmount = document.getElementById('cash-amount');
 
 // Trip Displays
 const profitBanner = document.getElementById('profit-banner');
@@ -1098,12 +1105,19 @@ function getPendingTransferAmount() {
   const trips = state.trips || [];
   const refuels = state.refuels || [];
   const transfers = state.transfers || [];
-  const totalIncome = trips.reduce((sum, t) => sum + (t.totalFare || t.netProfit || 0), 0);
+  const totalBankIncome = trips.reduce((sum, t) => {
+    const fare = t.totalFare || t.netProfit || 0;
+    const cash = t.cashAmount !== undefined
+      ? (t.cashAmount || 0)
+      : (t.hasCashPayment ? fare : 0);
+    const bankFare = Math.max(0, fare - cash);
+    return sum + bankFare;
+  }, 0);
   const totalFuelFromAccount = refuels
     .filter(r => r.paidFromAccount)
     .reduce((sum, r) => sum + (r.totalPrice || 0), 0);
   const totalTransferred = transfers.reduce((sum, tr) => sum + (tr.amount || 0), 0);
-  return Math.max(0, parseFloat((totalIncome - totalFuelFromAccount - totalTransferred).toFixed(2)));
+  return Math.max(0, parseFloat((totalBankIncome - totalFuelFromAccount - totalTransferred).toFixed(2)));
 }
 
 async function markTransferCompleted() {
@@ -1256,12 +1270,17 @@ function initEventListeners() {
     }
     state.totalPassengerFare = parseFloat(fare.toFixed(2));
     inputTotalFare.value = state.totalPassengerFare.toFixed(2);
+    if (state.hasCashPayment) {
+      updateCashPaymentCalculation(false);
+    }
     recalculateTrip();
   }
 
   if (toggleNoPassengers) {
     toggleNoPassengers.addEventListener('change', (e) => {
       state.noPassengers = e.target.checked;
+
+      const cashGroup = document.getElementById('cash-payment-group');
 
       if (state.noPassengers) {
         // Disable stepper and discount controls
@@ -1278,6 +1297,10 @@ function initEventListeners() {
         if (discountContainer) {
           discountContainer.style.display = 'none';
         }
+        if (cashGroup) {
+          cashGroup.style.opacity = '0.4';
+          cashGroup.style.pointerEvents = 'none';
+        }
       } else {
         if (stepperContainer) {
           stepperContainer.style.opacity = '1';
@@ -1291,6 +1314,10 @@ function initEventListeners() {
         }
         if (discountContainer) {
           discountContainer.style.display = state.hasDiscountPassengers ? 'block' : 'none';
+        }
+        if (cashGroup) {
+          cashGroup.style.opacity = '1';
+          cashGroup.style.pointerEvents = 'auto';
         }
       }
 
@@ -1379,6 +1406,56 @@ function initEventListeners() {
   if (inputDiscountNote) {
     inputDiscountNote.addEventListener('input', (e) => {
       state.discountNote = e.target.value.trim();
+    });
+  }
+
+  function updateCashPaymentCalculation(isUserTypingAmount = false) {
+    if (!state.hasCashPayment) return;
+    if (!isUserTypingAmount) {
+      // Auto-prefill cash amount based on count and price
+      let computed = 0;
+      if (state.individualPrices && Array.isArray(state.passengerPrices)) {
+        const count = Math.min(state.cashPassengers, state.passengerPrices.length);
+        computed = state.passengerPrices.slice(0, count).reduce((s, p) => s + (p || 0), 0);
+      } else {
+        computed = (state.cashPassengers || 1) * (state.pricePerPerson || 7.50);
+      }
+      state.cashAmount = parseFloat(Math.min(computed, state.totalPassengerFare || 0).toFixed(2));
+      if (inputCashAmount) inputCashAmount.value = state.cashAmount.toFixed(2);
+    }
+    recalculateTrip();
+  }
+
+  if (toggleCashPayment) {
+    toggleCashPayment.addEventListener('change', (e) => {
+      state.hasCashPayment = e.target.checked;
+      if (cashPaymentDetails) {
+        cashPaymentDetails.style.display = state.hasCashPayment ? 'block' : 'none';
+      }
+      if (state.hasCashPayment) {
+        if (!inputCashPassengersCount.value) inputCashPassengersCount.value = '1';
+        state.cashPassengers = parseInt(inputCashPassengersCount.value) || 1;
+        updateCashPaymentCalculation(false);
+      } else {
+        state.cashAmount = 0.00;
+        recalculateTrip();
+      }
+    });
+  }
+
+  if (inputCashPassengersCount) {
+    inputCashPassengersCount.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      state.cashPassengers = isNaN(val) ? 1 : Math.max(1, val);
+      updateCashPaymentCalculation(false);
+    });
+  }
+
+  if (inputCashAmount) {
+    inputCashAmount.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      state.cashAmount = isNaN(val) ? 0 : Math.max(0, val);
+      updateCashPaymentCalculation(true);
     });
   }
 
@@ -1633,6 +1710,9 @@ async function saveTrip() {
     passengerPrices: (state.noPassengers || !state.individualPrices) ? [] : [...state.passengerPrices],
     fuelConsumption: state.fuelConsumption !== undefined ? state.fuelConsumption : 6.5,
     fuelConsumedLiters: state.fuelConsumedLiters !== undefined ? state.fuelConsumedLiters : 9.75,
+    hasCashPayment: (state.noPassengers || !state.hasCashPayment) ? false : true,
+    cashPassengers: (state.noPassengers || !state.hasCashPayment) ? 0 : (state.cashPassengers || 1),
+    cashAmount: (state.noPassengers || !state.hasCashPayment) ? 0 : (state.cashAmount || 0),
     totalPassengers: totalCount,
     totalFare: income
   };
@@ -1704,6 +1784,16 @@ function resetTripForm() {
   if (inputDiscountPrice) inputDiscountPrice.value = '5.00';
   state.discountNote = '';
   if (inputDiscountNote) inputDiscountNote.value = '';
+
+  state.hasCashPayment = false;
+  state.cashPassengers = 1;
+  state.cashAmount = 0.00;
+  if (toggleCashPayment) toggleCashPayment.checked = false;
+  if (cashPaymentDetails) cashPaymentDetails.style.display = 'none';
+  if (inputCashPassengersCount) inputCashPassengersCount.value = '1';
+  if (inputCashAmount) inputCashAmount.value = '';
+  const cashGroup = document.getElementById('cash-payment-group');
+  if (cashGroup) { cashGroup.style.opacity = '1'; cashGroup.style.pointerEvents = 'auto'; }
 
   state.totalPassengerFare = 22.50;
   inputTotalFare.value = '22.50';
@@ -1905,6 +1995,31 @@ function openEditTrip(tripId, docId) {
   const liters = parseFloat(((d * consumption) / 100).toFixed(2));
   if (editTripConsumedLiters) editTripConsumedLiters.value = liters.toFixed(2);
 
+  // Cash payment in edit modal
+  const editToggleCash = document.getElementById('edit-toggle-cash-payment');
+  const editCashDetails = document.getElementById('edit-cash-payment-details');
+  const editCashCount = document.getElementById('edit-cash-passengers-count');
+  const editCashAmount = document.getElementById('edit-cash-amount');
+  const editCashGroup = document.getElementById('edit-cash-payment-group');
+
+  const hasCash = !!trip.hasCashPayment || (trip.cashAmount > 0);
+  if (editToggleCash) editToggleCash.checked = hasCash;
+  if (editCashDetails) editCashDetails.style.display = hasCash ? 'block' : 'none';
+  if (editCashCount) editCashCount.value = trip.cashPassengers || 1;
+  if (editCashAmount) {
+    if (trip.cashAmount !== undefined && trip.cashAmount !== null) {
+      editCashAmount.value = trip.cashAmount > 0 ? trip.cashAmount.toFixed(2) : '';
+    } else if (hasCash && trip.totalFare) {
+      editCashAmount.value = trip.totalFare.toFixed(2);
+    } else {
+      editCashAmount.value = '';
+    }
+  }
+  if (editCashGroup) {
+    editCashGroup.style.opacity = isNoPass ? '0.4' : '1';
+    editCashGroup.style.pointerEvents = isNoPass ? 'none' : 'auto';
+  }
+
   function calcEditFare() {
     if (toggleNoPass && toggleNoPass.checked) {
       if (inputTotal) inputTotal.value = '0.00';
@@ -2033,6 +2148,20 @@ async function saveEditedTrip() {
   const fuelConsumption = editTripConsumption ? Math.max(0, parseFloat(editTripConsumption.value) || 0) : 6.5;
   const fuelConsumedLiters = parseFloat(((150 * fuelConsumption) / 100).toFixed(2));
 
+  // Cash payment in edit modal
+  let hasCashPayment = false;
+  let cashPassengers = 0;
+  let cashAmount = 0.00;
+  if (!isNoPass) {
+    const editToggleCash = document.getElementById('edit-toggle-cash-payment');
+    hasCashPayment = editToggleCash ? editToggleCash.checked : false;
+    if (hasCashPayment) {
+      cashPassengers = Math.max(1, parseInt(document.getElementById('edit-cash-passengers-count')?.value) || 1);
+      const typedCash = parseFloat(document.getElementById('edit-cash-amount')?.value);
+      cashAmount = isNaN(typedCash) ? totalFare : Math.max(0, typedCash);
+    }
+  }
+
   const updatedTrip = {
     id: tripId,
     type: 'trip',
@@ -2051,6 +2180,9 @@ async function saveEditedTrip() {
     discountPassengers: discountPassengers,
     discountPrice: discountPrice,
     discountNote: discountNote,
+    hasCashPayment: hasCashPayment,
+    cashPassengers: cashPassengers,
+    cashAmount: cashAmount,
     totalPassengers: totalCount,
     totalFare: totalFare
   };
@@ -2241,15 +2373,57 @@ function initEditModals() {
     });
   });
 
+  const editToggleCash = document.getElementById('edit-toggle-cash-payment');
+  const editCashDetails = document.getElementById('edit-cash-payment-details');
+  const editCashCount = document.getElementById('edit-cash-passengers-count');
+  const editCashAmount = document.getElementById('edit-cash-amount');
+
+  function updateEditCashCalculation(isUserTyping = false) {
+    if (!editToggleCash || !editToggleCash.checked) return;
+    if (!isUserTyping && editCashAmount) {
+      let farePerPerson = 7.50;
+      if (inputPrice) farePerPerson = parseFloat(inputPrice.value) || 7.50;
+      const cCount = parseInt(editCashCount ? editCashCount.value : 1) || 1;
+      const autoCash = (cCount * farePerPerson).toFixed(2);
+      editCashAmount.value = autoCash;
+    }
+  }
+
+  if (editToggleCash) {
+    editToggleCash.addEventListener('change', () => {
+      if (editCashDetails) editCashDetails.style.display = editToggleCash.checked ? 'block' : 'none';
+      if (editToggleCash.checked) {
+        updateEditCashCalculation(false);
+      }
+    });
+  }
+
+  if (editCashCount) {
+    editCashCount.addEventListener('input', () => {
+      updateEditCashCalculation(false);
+    });
+  }
+
   if (toggleNoPass) {
     toggleNoPass.addEventListener('change', () => {
       if (passSection) passSection.style.display = toggleNoPass.checked ? 'none' : 'block';
+      const editCashGroup = document.getElementById('edit-cash-payment-group');
+      if (editCashGroup) {
+        editCashGroup.style.opacity = toggleNoPass.checked ? '0.4' : '1';
+        editCashGroup.style.pointerEvents = toggleNoPass.checked ? 'none' : 'auto';
+      }
       recalcEditTrip();
     });
   }
 
-  if (inputPass) inputPass.addEventListener('input', recalcEditTrip);
-  if (inputPrice) inputPrice.addEventListener('input', recalcEditTrip);
+  if (inputPass) inputPass.addEventListener('input', () => {
+    recalcEditTrip();
+    updateEditCashCalculation(false);
+  });
+  if (inputPrice) inputPrice.addEventListener('input', () => {
+    recalcEditTrip();
+    updateEditCashCalculation(false);
+  });
 
   if (toggleDisc) {
     toggleDisc.addEventListener('change', () => {
@@ -2531,6 +2705,14 @@ function renderHistory() {
         fuelInfo = `<span>⛽ ${item.fuelConsumption.toFixed(1)} l/100km (${liters.toFixed(2)} l)</span>`;
       }
 
+      let cashInfo = '';
+      const cashVal = item.cashAmount !== undefined
+        ? (item.cashAmount || 0)
+        : (item.hasCashPayment ? fare : 0);
+      if (cashVal > 0 || item.hasCashPayment) {
+        cashInfo = `<span style="color: #34D399; font-weight: 600;">💵 ${cashVal.toFixed(2)} € v hotovosti</span>`;
+      }
+
       return `
         <div class="trip-item">
           <div class="trip-left">
@@ -2542,6 +2724,7 @@ function renderHistory() {
               <span>🛣️ ${item.distanceKm} km</span>
               <span>👥 ${passengerInfo}</span>
               ${fuelInfo}
+              ${cashInfo}
             </div>
           </div>
           <div class="trip-right">
