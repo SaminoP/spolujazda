@@ -649,6 +649,21 @@
       <div class="modal-step">
         <b>3. Vlož vygenerovanú konfiguráciu:</b> (Projekt &rarr; Nastavenia &rarr; Všeobecné &rarr; Vaše aplikácie &rarr; Web)
       </div>
+      <div class="modal-step" style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid #F59E0B; padding: 8px 10px; border-radius: 6px; margin-top: 8px;">
+        <b style="color: #FBBF24;">4. DÔLEŽITÉ – Trvalé pravidlá (Rules):</b>
+        <div style="font-size: 11px; margin-top: 4px; color: var(--text-secondary);">
+          Po 30 dňoch testovací režim Firebase zablokuje zápis (Permission Denied). Aby cloud fungoval navždy, choď do <b>Firestore Database &rarr; Rules</b> a vlož:
+        </div>
+        <pre style="background: rgba(0,0,0,0.4); padding: 8px; border-radius: 6px; font-size: 11px; margin-top: 6px; overflow-x: auto; color: #38BDF8;">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}</pre>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Následne klikni na <b>Publish</b> v konzole.</div>
+      </div>
 
       <div class="form-group" style="margin-top: 10px;">
         <label class="form-label" for="cloud-config-input">Vlož firebaseConfig (JSON alebo text):</label>

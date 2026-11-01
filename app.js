@@ -892,6 +892,31 @@ function handleCloudUserLoggedOut() {
 async function setupFirestoreListeners(uid) {
   const { collection, onSnapshot, query, orderBy } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
 
+  // 1. Preload local data immediately so user sees their data even before/if Cloud connects
+  const localTrips = getLocalStoredTrips();
+  const localRefuels = getLocalStoredRefuels();
+  const localTransfers = getLocalStoredTransfers();
+  if (localTrips.length > 0) state.trips = localTrips;
+  if (localRefuels.length > 0) state.refuels = localRefuels;
+  if (localTransfers.length > 0) state.transfers = localTransfers;
+  renderHistory();
+  renderFuelTab();
+  renderStats();
+
+  let hasWarnedPermission = false;
+  function handlePermissionError(source, err) {
+    console.error(`Firestore ${source} error:`, err);
+    if ((err.code === 'permission-denied' || (err.message && err.message.includes('permission'))) && !hasWarnedPermission) {
+      hasWarnedPermission = true;
+      if (btnCloudModal) {
+        btnCloudModal.textContent = '⚠️ Cloud: Pravidlá expirovali';
+        btnCloudModal.className = 'cloud-badge offline';
+        btnCloudModal.title = 'Testovací režim Firestore (30 dní) vypršal. Klikni pre návod na trvalé pravidlá.';
+      }
+      showToast('⚠️ Firestore: Vypršali 30-dňové testovacie pravidlá v konzole. Zobrazujú sa lokálne dáta.');
+    }
+  }
+
   // Trips real-time sync
   const tripsRef = collection(state.firebaseDb, 'users', uid, 'trips');
   const tripsQuery = query(tripsRef, orderBy('id', 'desc'));
@@ -901,10 +926,11 @@ async function setupFirestoreListeners(uid) {
       docId: doc.id,
       ...doc.data()
     }));
+    saveLocalStoredTrips(state.trips);
     renderHistory();
     renderStats();
   }, (err) => {
-    console.error('Firestore Trips error:', err);
+    handlePermissionError('Trips', err);
   });
 
   // Refuels real-time sync
@@ -916,11 +942,12 @@ async function setupFirestoreListeners(uid) {
       docId: doc.id,
       ...doc.data()
     }));
+    saveLocalStoredRefuels(state.refuels);
     renderFuelTab();
     renderHistory();
     renderStats();
   }, (err) => {
-    console.error('Firestore Refuels error:', err);
+    handlePermissionError('Refuels', err);
   });
 
   // Transfers real-time sync
@@ -932,9 +959,10 @@ async function setupFirestoreListeners(uid) {
       docId: doc.id,
       ...doc.data()
     }));
+    saveLocalStoredTransfers(state.transfers);
     renderStats();
   }, (err) => {
-    console.error('Firestore Transfers error:', err);
+    handlePermissionError('Transfers', err);
   });
 }
 
@@ -1136,19 +1164,28 @@ async function markTransferCompleted() {
     amount: pending
   };
 
+  let savedToCloud = false;
   if (state.isCloudMode && state.firebaseUser) {
     try {
       const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       await addDoc(collection(state.firebaseDb, 'users', state.firebaseUser.uid, 'transfers'), transfer);
+      savedToCloud = true;
       showToast(`✅ Prevod ${pending.toFixed(2)} € zaznamenaný v Cloude! Počítadlo bolo vynulované.`);
     } catch (e) {
       console.error('Chyba pri ukladaní prevodu do Cloudu:', e);
-      showToast('❌ Chyba pri ukladaní prevodu do Cloudu.');
+      const isPermission = e.code === 'permission-denied' || (e.message && e.message.includes('permission'));
+      showToast(isPermission
+        ? '⚠️ Firestore pravidlá vypršali. Prevod bol zaznamenaný lokálne!'
+        : `⚠️ Cloud (${e.code || 'chyba'}): Prevod bol zaznamenaný lokálne!`);
     }
-  } else {
+  }
+
+  if (!savedToCloud) {
     state.transfers.unshift(transfer);
     saveLocalStoredTransfers(state.transfers);
-    showToast(`✅ Prevod ${pending.toFixed(2)} € zaznamenaný! Počítadlo bolo vynulované.`);
+    if (!state.isCloudMode) {
+      showToast(`✅ Prevod ${pending.toFixed(2)} € zaznamenaný! Počítadlo bolo vynulované.`);
+    }
     renderStats();
     recalculateTrip();
   }
@@ -1685,54 +1722,75 @@ function switchTab(tabId) {
   else if (tabId === 'stats') renderStats();
 }
 
-// ================= SAVE & DELETE ACTIONS =================
 async function saveTrip() {
   const dateVal = inputTripDate.value || new Date().toISOString().split('T')[0];
-  const income = state.totalPassengerFare || 0;
-  const routeLabel = ROUTES[state.routeType] ? ROUTES[state.routeType].label : 'Jazda';
-  const totalCount = state.noPassengers ? 0 : (state.passengers + (state.hasDiscountPassengers ? state.discountPassengers : 0));
+  const income = parseFloat((state.totalPassengerFare || 0).toFixed(2));
+  const routeKey = state.routeType || 'pn-brno';
+  const routeLabel = ROUTES[routeKey] ? ROUTES[routeKey].label : 'Jazda';
+  const totalCount = state.noPassengers ? 0 : ((state.passengers || 0) + (state.hasDiscountPassengers ? (state.discountPassengers || 0) : 0));
 
   const trip = {
     id: Date.now(),
     type: 'trip',
     date: dateVal,
-    routeType: state.routeType,
+    routeType: routeKey,
     routeLabel: routeLabel,
-    distanceKm: state.distanceKm,
-    noPassengers: state.noPassengers,
-    passengers: state.noPassengers ? 0 : state.passengers,
-    pricePerPerson: state.noPassengers ? 0 : state.pricePerPerson,
-    hasDiscountPassengers: state.noPassengers ? false : state.hasDiscountPassengers,
-    discountPassengers: (state.noPassengers || !state.hasDiscountPassengers) ? 0 : state.discountPassengers,
-    discountPrice: (state.noPassengers || !state.hasDiscountPassengers) ? 0 : state.discountPrice,
-    discountNote: (state.noPassengers || !state.hasDiscountPassengers) ? '' : state.discountNote,
-    individualPrices: state.noPassengers ? false : state.individualPrices,
-    passengerPrices: (state.noPassengers || !state.individualPrices) ? [] : [...state.passengerPrices],
-    fuelConsumption: state.fuelConsumption !== undefined ? state.fuelConsumption : 6.5,
-    fuelConsumedLiters: state.fuelConsumedLiters !== undefined ? state.fuelConsumedLiters : 9.75,
+    distanceKm: state.distanceKm || 150,
+    noPassengers: !!state.noPassengers,
+    passengers: state.noPassengers ? 0 : (state.passengers || 0),
+    pricePerPerson: state.noPassengers ? 0 : (state.pricePerPerson || 0),
+    hasDiscountPassengers: state.noPassengers ? false : !!state.hasDiscountPassengers,
+    discountPassengers: (state.noPassengers || !state.hasDiscountPassengers) ? 0 : (state.discountPassengers || 0),
+    discountPrice: (state.noPassengers || !state.hasDiscountPassengers) ? 0 : (state.discountPrice || 0),
+    discountNote: (state.noPassengers || !state.hasDiscountPassengers) ? '' : (state.discountNote || ''),
+    individualPrices: state.noPassengers ? false : !!state.individualPrices,
+    passengerPrices: (state.noPassengers || !state.individualPrices) ? [] : (state.passengerPrices || []).map(p => parseFloat(p) || 0),
+    fuelConsumption: state.fuelConsumption !== undefined && !isNaN(state.fuelConsumption) ? parseFloat(state.fuelConsumption) : 6.5,
+    fuelConsumedLiters: state.fuelConsumedLiters !== undefined && !isNaN(state.fuelConsumedLiters) ? parseFloat(state.fuelConsumedLiters) : 9.75,
     hasCashPayment: (state.noPassengers || !state.hasCashPayment) ? false : true,
     cashPassengers: (state.noPassengers || !state.hasCashPayment) ? 0 : (state.cashPassengers || 1),
-    cashAmount: (state.noPassengers || !state.hasCashPayment) ? 0 : (state.cashAmount || 0),
+    cashAmount: (state.noPassengers || !state.hasCashPayment) ? 0 : (parseFloat(state.cashAmount) || 0),
     totalPassengers: totalCount,
     totalFare: income
   };
+
+  let savedToCloud = false;
 
   if (state.isCloudMode && state.firebaseUser) {
     try {
       const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       await addDoc(collection(state.firebaseDb, 'users', state.firebaseUser.uid, 'trips'), trip);
+      savedToCloud = true;
       showToast('☁️ Jazda bola synchronizovaná do Cloudu!');
+      resetTripForm();
     } catch (e) {
       console.error('Chyba pri ukladaní do Cloudu:', e);
-      showToast('❌ Chyba pri ukladaní do Cloudu.');
+      const isPermission = e.code === 'permission-denied' || (e.message && e.message.includes('permission'));
+      if (isPermission) {
+        if (btnCloudModal) {
+          btnCloudModal.textContent = '⚠️ Cloud: Pravidlá expirovali';
+          btnCloudModal.className = 'cloud-badge offline';
+        }
+        showToast('⚠️ Firestore: Vypršali pravidlá v konzole (Permission Denied). Jazda bola bezpečne uložená lokálne!');
+      } else {
+        showToast(`⚠️ Cloud (${e.code || 'chyba'}): Jazda bola bezpečne uložená lokálne!`);
+      }
     }
-  } else {
-    // Local mode
-    state.trips.unshift(trip);
+  }
+
+  // Ak nie je pripojený Cloud, alebo ak ukladanie do Cloudu zlyhalo:
+  // VŽDY uložíme jazdu lokálne, aby používateľ o ňu nikdy neprišiel!
+  if (!savedToCloud) {
+    if (!state.trips.some(t => t.id === trip.id)) {
+      state.trips.unshift(trip);
+    }
     saveLocalStoredTrips(state.trips);
-    showToast('✅ Jazda bola uložená lokálne!');
+    if (!state.isCloudMode) {
+      showToast('✅ Jazda bola uložená lokálne!');
+    }
     renderHistory();
     renderStats();
+    resetTripForm();
   }
 }
 
@@ -1833,20 +1891,31 @@ async function saveRefuel() {
     paidFromAccount: paidFromAccount
   };
 
+  let savedToCloud = false;
+
   if (state.isCloudMode && state.firebaseUser) {
     try {
       const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       await addDoc(collection(state.firebaseDb, 'users', state.firebaseUser.uid, 'refuels'), refuel);
+      savedToCloud = true;
       showToast('☁️ Tankovanie bolo synchronizované do Cloudu!');
     } catch (e) {
       console.error('Chyba pri ukladaní do Cloudu:', e);
-      showToast('❌ Chyba pri ukladaní do Cloudu.');
+      const isPermission = e.code === 'permission-denied' || (e.message && e.message.includes('permission'));
+      showToast(isPermission
+        ? '⚠️ Firestore pravidlá vypršali (Permission Denied). Tankovanie bolo bezpečne uložené lokálne!'
+        : `⚠️ Cloud (${e.code || 'chyba'}): Tankovanie bolo bezpečne uložené lokálne!`);
     }
-  } else {
-    // Local mode
-    state.refuels.unshift(refuel);
+  }
+
+  if (!savedToCloud) {
+    if (!state.refuels.some(r => r.id === refuel.id)) {
+      state.refuels.unshift(refuel);
+    }
     saveLocalStoredRefuels(state.refuels);
-    showToast('⛽ Tankovanie bolo uložené lokálne!');
+    if (!state.isCloudMode) {
+      showToast('⛽ Tankovanie bolo uložené lokálne!');
+    }
     renderFuelTab();
     renderHistory();
     renderStats();
@@ -2187,24 +2256,32 @@ async function saveEditedTrip() {
     totalFare: totalFare
   };
 
+  let updatedInCloud = false;
   if (state.isCloudMode && state.firebaseUser && docId) {
     try {
       const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       await updateDoc(doc(state.firebaseDb, 'users', state.firebaseUser.uid, 'trips', docId), updatedTrip);
+      updatedInCloud = true;
       showToast('☁️ Jazda bola aktualizovaná v Cloude!');
     } catch (e) {
       console.error('Chyba pri aktualizácii v Cloude:', e);
-      showToast('❌ Chyba pri ukladaní do Cloudu.');
+      const isPermission = e.code === 'permission-denied' || (e.message && e.message.includes('permission'));
+      showToast(isPermission
+        ? '⚠️ Firestore pravidlá vypršali. Zmeny boli uložené lokálne!'
+        : `⚠️ Cloud (${e.code || 'chyba'}): Zmeny boli uložené lokálne!`);
     }
-  } else {
-    // Local mode update
-    const idx = state.trips.findIndex(t => t.id === tripId);
+  }
+
+  if (!updatedInCloud) {
+    const idx = state.trips.findIndex(t => t.id === tripId || (docId && t.docId === docId));
     if (idx !== -1) {
       state.trips[idx] = { ...state.trips[idx], ...updatedTrip };
       saveLocalStoredTrips(state.trips);
       renderHistory();
       renderStats();
-      showToast('✅ Jazda úspešne upravená!');
+      if (!state.isCloudMode) {
+        showToast('✅ Jazda úspešne upravená!');
+      }
     }
   }
 
@@ -2245,30 +2322,38 @@ async function saveEditedRefuel() {
     paidFromAccount: paidFromAccount
   };
 
+  let refuelUpdatedInCloud = false;
   if (state.isCloudMode && state.firebaseUser && docId) {
     try {
       const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       await updateDoc(doc(state.firebaseDb, 'users', state.firebaseUser.uid, 'refuels', docId), updatedRefuel);
+      refuelUpdatedInCloud = true;
       showToast('☁️ Tankovanie aktualizované v Cloude!');
     } catch (e) {
       console.error('Chyba pri aktualizácii v Cloudu:', e);
-      showToast('❌ Chyba pri ukladaní do Cloudu.');
+      const isPermission = e.code === 'permission-denied' || (e.message && e.message.includes('permission'));
+      showToast(isPermission
+        ? '⚠️ Firestore pravidlá vypršali. Zmeny boli uložené lokálne!'
+        : `⚠️ Cloud (${e.code || 'chyba'}): Zmeny boli uložené lokálne!`);
     }
-  } else {
-    // Local mode update
-    const idx = state.refuels.findIndex(r => r.id === refuelId);
+  }
+
+  if (!refuelUpdatedInCloud) {
+    const idx = state.refuels.findIndex(r => r.id === refuelId || (docId && r.docId === docId));
     if (idx !== -1) {
       state.refuels[idx] = { ...state.refuels[idx], ...updatedRefuel };
       saveLocalStoredRefuels(state.refuels);
       renderFuelTab();
       renderHistory();
       renderStats();
-      showToast('✅ Tankovanie úspešne upravené!');
+      if (!state.isCloudMode) {
+        showToast('✅ Tankovanie úspešne upravené!');
+      }
     }
   }
 
-  const modal = document.getElementById('edit-refuel-modal');
-  if (modal) modal.classList.remove('open');
+  const modalRefuel = document.getElementById('edit-refuel-modal');
+  if (modalRefuel) modalRefuel.classList.remove('open');
 }
 
 function initEditModals() {
