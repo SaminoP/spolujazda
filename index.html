@@ -15,7 +15,7 @@
   
   <!-- Web Manifest -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#070B12">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   
   <link rel="stylesheet" href="style.css">
@@ -28,12 +28,12 @@
       <div class="header-icon">🚗</div>
       <div class="header-title">
         <h1>Spolujazda</h1>
-        <div class="header-subtitle">Piešťany ⇄ Brno</div>
+        <div class="header-subtitle">PN ⇄ Brno</div>
       </div>
     </div>
     <div class="header-actions">
       <button type="button" class="cloud-badge" id="btn-cloud-modal" title="Nastavenia synchronizácie">☁️ Lokálny</button>
-      <div class="header-user" id="header-user-section">
+      <div class="header-user" id="header-user-section" style="display: none;">
         <span class="user-name-badge" id="current-user-name">👤 Používateľ</span>
         <button type="button" class="btn-logout" id="btn-logout" title="Odhlásiť sa">Odhlásiť</button>
       </div>
@@ -45,7 +45,7 @@
     <div class="auth-header">
       <div class="auth-logo">🚗</div>
       <h2>Spolujazda PN ⇄ Brno</h2>
-      <p>Prihlás sa alebo si vytvor účet pre svoju vlastnú databázu jázd</p>
+      <p>Prihlás sa alebo si vytvor účet pre svoju databázu jázd</p>
     </div>
 
     <div class="card">
@@ -58,9 +58,9 @@
 
       <form id="auth-form" onsubmit="return false;">
         <div class="form-group">
-          <label class="form-label" for="auth-username">Používateľské meno (Login)</label>
+          <label class="form-label" for="auth-username">Prihlasovacie meno</label>
           <div class="input-wrapper">
-            <input type="text" id="auth-username" class="input-field" placeholder="Zadaj prihlasovacie meno" required autocomplete="username" autocapitalize="none">
+            <input type="text" id="auth-username" class="input-field" placeholder="Meno alebo login" required autocomplete="username" autocapitalize="none">
           </div>
         </div>
 
@@ -78,7 +78,7 @@
           </div>
         </div>
 
-        <button type="button" id="btn-auth-submit" class="btn-primary mt-18">
+        <button type="button" id="btn-auth-submit" class="btn-primary mt-16">
           Prihlásiť sa
         </button>
         <div id="auth-test-hint" class="auth-hint">
@@ -100,19 +100,19 @@
         <div id="profit-amount" class="profit-amount">+22.50 €</div>
         <div class="profit-details-grid">
           <div class="detail-item">
-            <span class="detail-label">Cena / osoba</span>
-            <span id="display-price-person" class="detail-value income">7.50 €</span>
+            <span class="detail-label">Cena:</span>
+            <span id="display-price-person" class="detail-value income">7.50 €/os.</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Pasažieri</span>
-            <span id="display-passengers" class="detail-value">3 ľudia</span>
+            <span class="detail-label">Ľudia:</span>
+            <span id="display-passengers" class="detail-value">3</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Vzdialenosť</span>
+            <span class="detail-label">Trasa:</span>
             <span id="display-route-km" class="detail-value">150 km</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Spotreba</span>
+            <span class="detail-label">Palivo:</span>
             <span id="display-trip-fuel" class="detail-value">9.75 l</span>
           </div>
         </div>
@@ -121,33 +121,34 @@
       <!-- Rýchly indikátor neodoslaných peňazí z účtu spolujázd -->
       <div id="quick-transfer-box" class="quick-transfer-box" title="Kliknutím prejdeš do Peňaženky">
         <span class="quick-transfer-label">
-          <span>🏦</span> Na odoslanie na osobný účet:
+          <span>🏦</span> Na prevod na osobný účet:
         </span>
         <span id="quick-pending-transfer" class="quick-transfer-amount">0.00 €</span>
       </div>
 
-      <!-- Card: Trasa & Vzdialenosť -->
+      <!-- Main Trip Card -->
       <div class="card">
-        <div class="card-title">
-          <span class="icon">🛣️</span> Trasa, vzdialenosť a spotreba
+        <!-- 1. Trasa -->
+        <div class="form-group mb-14">
+          <label class="form-label">Smer trasy</label>
+          <div class="segmented-control segmented-2col">
+            <button type="button" class="segment-btn active" data-route="pn-brno">PN ➔ Brno</button>
+            <button type="button" class="segment-btn" data-route="brno-pn">Brno ➔ PN</button>
+          </div>
         </div>
 
-        <div class="segmented-control segmented-2col">
-          <button type="button" class="segment-btn active" data-route="pn-brno">PN ➔ Brno</button>
-          <button type="button" class="segment-btn" data-route="brno-pn">Brno ➔ PN</button>
-        </div>
-
-        <div class="grid-2">
+        <!-- 2. Dátum a Vzdialenosť -->
+        <div class="grid-2 mb-14">
           <div class="form-group">
-            <label class="form-label" for="trip-date">Dátum jazdy</label>
+            <label class="form-label" for="trip-date">Dátum</label>
             <div class="input-wrapper">
               <input type="date" id="trip-date" class="input-field">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label" for="trip-distance">
-              <span>Vzdialenosť</span>
-              <span class="form-subtext">🔒 fixná</span>
+              <span>Trasa</span>
+              <span class="form-subtext">fixná</span>
             </label>
             <div class="input-wrapper">
               <input type="number" id="trip-distance" class="input-field input-readonly" value="150" readonly tabindex="-1">
@@ -156,16 +157,164 @@
           </div>
         </div>
 
-        <div class="grid-2 mt-14 pt-12 border-top-dashed">
-          <div class="form-group">
-            <label class="form-label" for="trip-consumption">
-              <span>Spotreba na 100 km</span>
+        <!-- 3. Pasažieri (Veľký pohodlný Stepper) -->
+        <div class="form-group mb-14" id="passengers-stepper-container">
+          <label class="form-label">
+            <span>Počet pasažierov</span>
+            <span class="form-subtext">okrem šoféra</span>
+          </label>
+          <div class="stepper-container">
+            <button type="button" id="btn-passenger-minus" class="stepper-btn" aria-label="Menej pasažierov">−</button>
+            <div id="stepper-passengers" class="stepper-value">3</div>
+            <button type="button" id="btn-passenger-plus" class="stepper-btn" aria-label="Viac pasažierov">+</button>
+          </div>
+        </div>
+
+        <!-- 4. Cena na osobu (Zobrazí sa pri jednotnej cene) -->
+        <div id="uniform-price-container" class="mb-14">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="price-per-person">Cena / osoba</label>
+              <div class="input-wrapper">
+                <input type="number" id="price-per-person" class="input-field font-bold" value="7.50" min="0" step="0.5">
+                <span class="input-unit">€</span>
+              </div>
+              <div class="price-presets mt-6">
+                <button type="button" class="price-preset-btn" data-price="7.00">7,00 €</button>
+                <button type="button" class="price-preset-btn" data-price="7.50">7,50 €</button>
+                <button type="button" class="price-preset-btn" data-price="8.00">8,00 €</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="total-passenger-fare">
+                <span>Spolu od ľudí</span>
+                <span class="form-subtext">⚡ auto</span>
+              </label>
+              <div class="input-wrapper">
+                <input type="number" id="total-passenger-fare" class="input-field input-readonly font-bold font-green" value="22.50" readonly tabindex="-1">
+                <span class="input-unit">€</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Zoznam voliteľných nastavení (Modern iOS Options List) -->
+        <div class="options-list mb-14">
+          
+          <!-- Voľba: Ísť sám -->
+          <div class="option-row">
+            <label class="toggle-label" for="toggle-no-passengers">
+              <div class="option-row-text">
+                <span class="option-row-title">🚗 Ísť sám / bez pasažierov</span>
+                <span class="option-row-subtitle">0 ľudí, 0 € príjem</span>
+              </div>
+              <input type="checkbox" id="toggle-no-passengers" class="toggle-checkbox">
+              <span class="toggle-switch"></span>
             </label>
+          </div>
+
+          <!-- Voľba: Platba v hotovosti -->
+          <div class="option-row" id="cash-payment-group">
+            <label class="toggle-label toggle-label--green" for="toggle-cash-payment">
+              <div class="option-row-text">
+                <span class="option-row-title option-row-title--green">💵 Platba v hotovosti (do ruky)</span>
+                <span class="option-row-subtitle">Nezarátava sa do prevodu na účet</span>
+              </div>
+              <input type="checkbox" id="toggle-cash-payment" class="toggle-checkbox">
+              <span class="toggle-switch toggle-switch--green"></span>
+            </label>
+
+            <!-- Podrobnosti hotovosti -->
+            <div id="cash-payment-details" class="option-subdetails" style="display: none;">
+              <div class="grid-2">
+                <div class="form-group" id="cash-passengers-count-wrapper">
+                  <label class="form-label" for="cash-passengers-count">Počet v hotovosti</label>
+                  <div class="input-wrapper">
+                    <input type="number" id="cash-passengers-count" class="input-field" min="1" max="8" value="1">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="cash-amount">Suma v hotovosti</label>
+                  <div class="input-wrapper">
+                    <input type="number" id="cash-amount" class="input-field" step="0.5" min="0" placeholder="0.00">
+                    <span class="input-unit">€</span>
+                  </div>
+                </div>
+              </div>
+              <div class="option-tip">
+                💡 Tip: Uprav sumu hotovosti podľa skutočnosti.
+              </div>
+            </div>
+          </div>
+
+          <!-- Voľba: Individuálne ceny -->
+          <div class="option-row" id="toggle-individual-prices-wrapper">
+            <label class="toggle-label toggle-label--blue" for="toggle-individual-prices">
+              <div class="option-row-text">
+                <span class="option-row-title option-row-title--blue">🎫 Individuálna cena pre každého</span>
+                <span class="option-row-subtitle">Rôzne sumy pre jednotlivých cestujúcich</span>
+              </div>
+              <input type="checkbox" id="toggle-individual-prices" class="toggle-checkbox">
+              <span class="toggle-switch toggle-switch--blue"></span>
+            </label>
+
+            <!-- Individuálne ceny políčka -->
+            <div id="individual-prices-container" class="option-subdetails" style="display: none;">
+              <div id="individual-price-rows"></div>
+              <div class="individual-total-row">
+                <span class="individual-total-label">Spolu od cestujúcich:</span>
+                <span id="individual-total-display" class="individual-total-amount">0.00 €</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Voľba: Zľavnení pasažieri -->
+          <div class="option-row">
+            <label class="toggle-label toggle-label--blue" for="toggle-discount-passengers">
+              <div class="option-row-text">
+                <span class="option-row-title option-row-title--blue">➕ Zľavnená trasa / skôr vysadení</span>
+                <span class="option-row-subtitle">Pasažier s nižšou sumou (kratší úsek)</span>
+              </div>
+              <input type="checkbox" id="toggle-discount-passengers" class="toggle-checkbox">
+              <span class="toggle-switch toggle-switch--blue"></span>
+            </label>
+
+            <!-- Podrobnosti zľavnených -->
+            <div id="discount-passengers-container" class="option-subdetails" style="display: none;">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label" for="discount-passengers-count">Počet ľudí</label>
+                  <div class="input-wrapper">
+                    <input type="number" id="discount-passengers-count" class="input-field" value="1" min="1" max="6">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="discount-price-per-person">Suma / osoba</label>
+                  <div class="input-wrapper">
+                    <input type="number" id="discount-price-per-person" class="input-field" value="5.00" min="0" step="0.5">
+                    <span class="input-unit">€</span>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group mt-8">
+                <label class="form-label" for="discount-note">Miesto vysadenia (voliteľné)</label>
+                <div class="input-wrapper">
+                  <input type="text" id="discount-note" class="input-field" placeholder="napr. Nové Mesto / Uh. Hradiště">
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 6. Spotreba auta (Kompaktný riadok) -->
+        <div class="fuel-consumption-row">
+          <div class="form-group">
+            <label class="form-label" for="trip-consumption">Spotreba auta</label>
             <div class="input-wrapper">
               <input type="number" id="trip-consumption" class="input-field" value="6.5" min="0" step="0.1" placeholder="6.5">
               <span class="input-unit">l/100km</span>
             </div>
-            <!-- Rýchle predvoľby spotreby -->
             <div class="price-presets mt-6">
               <button type="button" class="price-preset-btn consumption-preset-btn" data-consumption="6.0">6,0</button>
               <button type="button" class="price-preset-btn consumption-preset-btn" data-consumption="6.5">6,5</button>
@@ -175,8 +324,8 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="trip-consumed-liters">
-              <span>Spotrebované palivo</span>
-              <span class="form-subtext">⚡ automaticky</span>
+              <span>Palivo</span>
+              <span class="form-subtext">⚡ auto</span>
             </label>
             <div class="input-wrapper">
               <input type="number" id="trip-consumed-liters" class="input-field input-readonly" value="9.75" readonly tabindex="-1">
@@ -184,166 +333,18 @@
             </div>
           </div>
         </div>
+
+        <!-- 7. Akčné tlačidlá -->
+        <button type="button" id="btn-save-trip" class="btn-primary btn-large mt-16">
+          <span>💾</span> Uložiť jazdu do histórie
+        </button>
+        <button type="button" id="btn-reset-trip" class="btn-secondary mt-8">
+          🔄 Vynulovať formulár
+        </button>
       </div>
-
-      <!-- Card: Pasažieri & Príjmy -->
-      <div class="card">
-        <div class="card-title">
-          <span class="icon">👥</span> Pasažieri a vyzbierané peniaze
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">
-            <span>Počet ľudí (plná trasa)</span>
-            <span class="form-subtext">(okrem šoféra)</span>
-          </label>
-          <div class="stepper-container" id="passengers-stepper-container">
-            <button type="button" id="btn-passenger-minus" class="stepper-btn">−</button>
-            <div id="stepper-passengers" class="stepper-value">3</div>
-            <button type="button" id="btn-passenger-plus" class="stepper-btn">+</button>
-          </div>
-        </div>
-
-        <!-- Voliteľná možnosť: Prázdna jazda bez pasažierov -->
-        <div class="form-group mt-10">
-          <label class="form-checkbox-label toggle-label">
-            <input type="checkbox" id="toggle-no-passengers" class="toggle-checkbox">
-            <span class="toggle-switch"></span>
-            <span>🚗 Ísť sám / bez pasažierov (0 ľudí, 0 € zisk)</span>
-          </label>
-        </div>
-
-        <!-- Voliteľná možnosť: Individuálna suma pre každého cestujúceho -->
-        <div class="form-group mt-8" id="toggle-individual-prices-wrapper">
-          <label class="form-checkbox-label toggle-label toggle-label--blue">
-            <input type="checkbox" id="toggle-individual-prices" class="toggle-checkbox">
-            <span class="toggle-switch toggle-switch--blue"></span>
-            <span>🎫 Zadať individuálnu sumu pre každého cestujúceho</span>
-          </label>
-        </div>
-
-        <!-- Zobrazí sa iba pri jednotnej cene -->
-        <div id="uniform-price-container" class="mt-14">
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label" for="price-per-person">Cena na osobu</label>
-              <div class="input-wrapper">
-                <input type="number" id="price-per-person" class="input-field" value="7.50" min="0" step="0.5">
-                <span class="input-unit">€</span>
-              </div>
-              <!-- Rýchle predvolené sumy -->
-              <div class="price-presets">
-                <button type="button" class="price-preset-btn" data-price="7.00">7,00 €</button>
-                <button type="button" class="price-preset-btn" data-price="7.50">7,50 €</button>
-                <button type="button" class="price-preset-btn" data-price="8.00">8,00 €</button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="total-passenger-fare">
-                <span>Spolu od ľudí</span>
-                <span class="form-subtext">⚡ automaticky</span>
-              </label>
-              <div class="input-wrapper">
-                <input type="number" id="total-passenger-fare" class="input-field input-readonly" value="22.50" readonly tabindex="-1">
-                <span class="input-unit">€</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Individuálne ceny – zobrazí sa iba keď je zapnutý prepínač -->
-        <div id="individual-prices-container" class="individual-prices-container">
-          <div id="individual-price-rows">
-            <!-- Dynamicky generované riadky pre každého pasažiera -->
-          </div>
-          <div class="individual-total-row">
-            <label class="form-label individual-total-label">
-              <span>Spolu od cestujúcich</span>
-              <span class="form-subtext" style="display:block;">⚡ automaticky</span>
-            </label>
-            <span id="individual-total-display" class="individual-total-amount">0.00 €</span>
-          </div>
-        </div>
-
-        <!-- Voliteľná kolonka: Pasažieri, ktorí platili menej (kratšia trasa) -->
-        <div class="form-group mt-16 pt-12 border-top-dashed">
-          <label class="form-checkbox-label toggle-label toggle-label--blue">
-            <input type="checkbox" id="toggle-discount-passengers" class="toggle-checkbox">
-            <span class="toggle-switch toggle-switch--blue"></span>
-            <span>➕ Pasažieri s nižšou sumou (kratšia trasa / skôr vysadení)</span>
-          </label>
-        </div>
-
-        <div id="discount-passengers-container" class="discount-passengers-box" style="display: none;">
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label" for="discount-passengers-count">Počet ľudí (menej)</label>
-              <div class="input-wrapper">
-                <input type="number" id="discount-passengers-count" class="input-field" value="1" min="1" max="6">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="discount-price-per-person">Suma za osobu</label>
-              <div class="input-wrapper">
-                <input type="number" id="discount-price-per-person" class="input-field" value="5.00" min="0" step="0.5">
-                <span class="input-unit">€</span>
-              </div>
-            </div>
-          </div>
-          <div class="form-group mt-10">
-            <label class="form-label" for="discount-note">Miesto vysadenia / Poznámka (voliteľné)</label>
-            <div class="input-wrapper">
-              <input type="text" id="discount-note" class="input-field" placeholder="napr. Nové Mesto / Uherské Hradiště">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Platba v hotovosti (Cash do vrecka) -->
-      <div class="option-card option-card--green" id="cash-payment-group">
-        <label class="form-checkbox-label toggle-label toggle-label--green">
-          <input type="checkbox" id="toggle-cash-payment" class="toggle-checkbox">
-          <span class="toggle-switch toggle-switch--green"></span>
-          <div class="option-card-text">
-            <span class="option-card-title option-card-title--green">💵 Platba v hotovosti (do ruky)</span>
-            <span class="form-subtext">
-              Peniaze prijaté v hotovosti sa <strong>nezarátajú</strong> do počítadla prevodu na osobný účet.
-            </span>
-          </div>
-        </label>
-
-        <div id="cash-payment-details" class="option-card-details" style="display: none;">
-          <div class="grid-2">
-            <div class="form-group" id="cash-passengers-count-wrapper">
-              <label class="form-label" for="cash-passengers-count">Počet ľudí v hotovosti</label>
-              <div class="input-wrapper">
-                <input type="number" id="cash-passengers-count" class="input-field" min="1" max="8" value="1">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="cash-amount">Suma prijatá v hotovosti</label>
-              <div class="input-wrapper">
-                <input type="number" id="cash-amount" class="input-field" step="0.5" min="0" placeholder="0.00">
-                <span class="input-unit">€</span>
-              </div>
-            </div>
-          </div>
-          <div class="option-card-tip">
-            💡 Tip: Ak platili všetci v hotovosti, klikni sem alebo uprav sumu podľa skutočnosti.
-          </div>
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <button type="button" id="btn-save-trip" class="btn-primary">
-        <span>💾</span> Uložiť jazdu do histórie
-      </button>
-      <button type="button" id="btn-reset-trip" class="btn-secondary">
-        🔄 Vynulovať formulár
-      </button>
     </section>
 
-    <!-- ==================== TAB 2: TANKOVANIE (ZVLÁŠŤ ZÁLOŽKA) ==================== -->
+    <!-- ==================== TAB 2: TANKOVANIE ==================== -->
     <section id="tab-fuel" class="tab-view">
       
       <!-- Fuel Overview Banner -->
@@ -354,15 +355,15 @@
         <div id="fuel-tab-total-spent" class="profit-amount fuel-amount">0.00 €</div>
         <div class="profit-details-grid">
           <div class="detail-item">
-            <span class="detail-label">Celkovo litrov</span>
+            <span class="detail-label">Litrov:</span>
             <span id="fuel-tab-total-liters" class="detail-value">0.0 l</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Priemer cena</span>
+            <span class="detail-label">Priem. cena:</span>
             <span id="fuel-tab-avg-price" class="detail-value">0.00 €/l</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Tankovaní</span>
+            <span class="detail-label">Počet:</span>
             <span id="fuel-tab-count" class="detail-value">0</span>
           </div>
         </div>
@@ -374,30 +375,30 @@
           <span class="icon">⛽</span> Zapísať nové tankovanie
         </div>
 
-        <div class="grid-2">
+        <!-- Suma & Objem -->
+        <div class="grid-2 mb-12">
           <div class="form-group">
-            <label class="form-label" for="refuel-date">Dátum</label>
+            <label class="form-label" for="refuel-total-price">Suma spolu</label>
             <div class="input-wrapper">
-              <input type="date" id="refuel-date" class="input-field">
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="refuel-total-price">
-              <span>Suma spolu</span>
-            </label>
-            <div class="input-wrapper">
-              <input type="number" id="refuel-total-price" class="input-field" placeholder="napr. 45" min="0" step="0.5">
+              <input type="number" id="refuel-total-price" class="input-field font-bold font-blue" placeholder="napr. 45" min="0" step="0.5">
               <span class="input-unit">€</span>
             </div>
           </div>
-        </div>
-
-        <div class="grid-2 mt-10">
           <div class="form-group">
             <label class="form-label" for="refuel-liters">Objem</label>
             <div class="input-wrapper">
               <input type="number" id="refuel-liters" class="input-field" placeholder="napr. 30" min="0" step="0.1">
               <span class="input-unit">l</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dátum & Cena/l -->
+        <div class="grid-2 mb-12">
+          <div class="form-group">
+            <label class="form-label" for="refuel-date">Dátum</label>
+            <div class="input-wrapper">
+              <input type="date" id="refuel-date" class="input-field">
             </div>
           </div>
           <div class="form-group">
@@ -409,11 +410,12 @@
           </div>
         </div>
 
-        <div class="grid-2 mt-10">
+        <!-- Miesto & Tachometer -->
+        <div class="grid-2 mb-12">
           <div class="form-group">
-            <label class="form-label" for="refuel-station">Čerpačka / Miesto</label>
+            <label class="form-label" for="refuel-station">Čerpačka</label>
             <div class="input-wrapper">
-              <input type="text" id="refuel-station" class="input-field" placeholder="napr. Slovnaft PN">
+              <input type="text" id="refuel-station" class="input-field" placeholder="napr. Slovnaft, OMV">
             </div>
           </div>
           <div class="form-group">
@@ -425,20 +427,20 @@
           </div>
         </div>
 
-        <!-- Zaplatené z účtu -->
-        <div class="option-card option-card--blue mt-12">
-          <label class="form-checkbox-label toggle-label toggle-label--blue-strong">
+        <!-- Zaplatené z účtu prepínač -->
+        <div class="option-row mb-12">
+          <label class="toggle-label toggle-label--blue-strong" for="refuel-paid-from-account">
+            <div class="option-row-text">
+              <span class="option-row-title option-row-title--blue">💳 Zaplatené z účtu (spolujazdy)</span>
+              <span class="option-row-subtitle">Odpočíta sumu z počítadla prevodu na osobný účet</span>
+            </div>
             <input type="checkbox" id="refuel-paid-from-account" class="toggle-checkbox">
             <span class="toggle-switch toggle-switch--blue"></span>
-            <div class="option-card-text">
-              <span class="option-card-title option-card-title--blue">💳 Zaplatené z účtu (spolujazdy)</span>
-              <span class="form-subtext">Odpočíta sumu z počítadla prevodu na osobný účet</span>
-            </div>
           </label>
         </div>
 
         <!-- Bločok z tankovania -->
-        <div class="form-group mt-10">
+        <div class="receipt-section mb-14">
           <label class="form-label">
             <span>📷 Bločok z tankovania</span>
             <span class="form-subtext">voliteľné</span>
@@ -447,13 +449,17 @@
           <button type="button" class="btn-secondary btn-receipt-upload" id="btn-refuel-receipt-trigger">
             <span>📷</span> Odfotiť alebo nahrať bločok
           </button>
-          <div class="form-group mt-8 mb-6">
-            <label class="form-checkbox-label toggle-label toggle-label--green-sm">
+          
+          <div class="option-row mt-8">
+            <label class="toggle-label toggle-label--green-sm" for="refuel-enable-ocr">
+              <div class="option-row-text">
+                <span class="option-row-title">🤖 Vyčítať údaje z bločku (OCR)</span>
+              </div>
               <input type="checkbox" id="refuel-enable-ocr" checked class="toggle-checkbox">
               <span class="toggle-switch toggle-switch--green"></span>
-              <span>🤖 Automaticky vyčítať údaje z bločku (OCR)</span>
             </label>
           </div>
+
           <div id="refuel-receipt-preview-container" class="receipt-preview-container" style="display: none;">
             <div class="receipt-preview-card">
               <img id="refuel-receipt-preview-img" src="" alt="Náhľad bločku" class="receipt-preview-thumbnail">
@@ -467,12 +473,12 @@
               <span id="refuel-receipt-ocr-text">Spracovávam bločok pomocou OCR...</span>
             </div>
             <button type="button" class="btn-secondary btn-rerun-ocr" id="btn-refuel-rerun-ocr" style="display: none;">
-              🔄 Znova vyčítať údaje z bločku (OCR)
+              🔄 Znova vyčítať údaje (OCR)
             </button>
           </div>
         </div>
 
-        <button type="button" id="btn-save-refuel" class="btn-primary mt-14">
+        <button type="button" id="btn-save-refuel" class="btn-primary btn-large">
           <span>⛽</span> Uložiť tankovanie
         </button>
       </div>
@@ -481,33 +487,29 @@
       <div class="section-title">
         <span class="icon">📜</span> Zoznam tankovaní
       </div>
-      <div id="fuel-tab-list">
-        <!-- Rendered dynamically -->
-      </div>
+      <div id="fuel-tab-list"></div>
     </section>
 
-    <!-- ==================== TAB 3: SPOLOČNÁ HISTÓRIA ==================== -->
+    <!-- ==================== TAB 3: HISTÓRIA ==================== -->
     <section id="tab-history" class="tab-view">
       <div class="section-title">
-        <span class="icon">📋</span> História aktivít
+        <span class="icon">📋</span> História jázd a tankovaní
       </div>
 
       <!-- Filter Buttons -->
-      <div class="segmented-control">
+      <div class="segmented-control mb-14">
         <button type="button" class="segment-btn active" data-history-filter="all">Všetko</button>
         <button type="button" class="segment-btn" data-history-filter="trips">🚗 Jazdy</button>
         <button type="button" class="segment-btn" data-history-filter="fuel">⛽ Tankovanie</button>
       </div>
 
-      <div id="history-list">
-        <!-- Rendered dynamically via app.js -->
-      </div>
+      <div id="history-list"></div>
     </section>
 
     <!-- ==================== TAB 4: ŠTATISTIKY ==================== -->
     <section id="tab-stats" class="tab-view">
       <div class="section-title">
-        <span class="icon">📊</span> Celkový prehľad &amp; Peňaženka
+        <span class="icon">📊</span> Prehľad &amp; Peňaženka
       </div>
 
       <!-- Hlavný stav peňaženky -->
@@ -516,15 +518,15 @@
         <div id="stat-wallet-net" class="profit-amount">+0.00 €</div>
         <div class="profit-details-grid">
           <div class="detail-item">
-            <span class="detail-label">Vyzbierané od ľudí</span>
+            <span class="detail-label">Od ľudí:</span>
             <span id="stat-total-income" class="detail-value income">+0.00 €</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Skutočné tankovania</span>
+            <span class="detail-label">Tankovania:</span>
             <span id="stat-total-refueled" class="detail-value expense">-0.00 €</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Zisk z jázd</span>
+            <span class="detail-label">Zisk z jázd:</span>
             <span id="stat-trips-profit" class="detail-value">+0.00 €</span>
           </div>
         </div>
@@ -536,13 +538,11 @@
           <div class="card-title">
             <span class="icon">🏦</span> Prevod na osobný účet
           </div>
-          <span class="card-badge card-badge--blue">
-            Spolujazdy ➔ Osobný účet
-          </span>
+          <span class="card-badge card-badge--blue">Spolujazdy ➔ Osobné</span>
         </div>
         
         <p class="card-description">
-          Peniaze prijaté od cestujúcich, ktoré máš poslať z bankového účtu spolujázd na svoj bežný účet:
+          Peniaze prijaté od cestujúcich, ktoré máš previesť na svoj bežný účet:
         </p>
 
         <div class="transfer-amount-row">
@@ -559,13 +559,14 @@
         </div>
       </div>
 
+      <!-- Grid 8 štatistík -->
       <div class="stats-grid">
         <div class="stat-box">
           <span class="stat-box-label">Najazdené km</span>
           <span id="stat-total-km" class="stat-box-value">0 km</span>
         </div>
         <div class="stat-box">
-          <span class="stat-box-label">Odvezených ľudí</span>
+          <span class="stat-box-label">Odvezení ľudia</span>
           <span id="stat-total-passengers" class="stat-box-value">0</span>
         </div>
         <div class="stat-box">
@@ -577,7 +578,7 @@
           <span id="stat-total-refuels-count" class="stat-box-value">0</span>
         </div>
         <div class="stat-box">
-          <span class="stat-box-label">Celkovo natankované</span>
+          <span class="stat-box-label">Natankované</span>
           <span id="stat-total-liters-all" class="stat-box-value">0.0 l</span>
         </div>
         <div class="stat-box">
@@ -585,22 +586,22 @@
           <span id="stat-avg-fuel-price" class="stat-box-value">0.00 €/l</span>
         </div>
         <div class="stat-box">
-          <span class="stat-box-label">Spotreba na jazdách</span>
+          <span class="stat-box-label">Spotrebované</span>
           <span id="stat-total-trips-liters" class="stat-box-value">0.0 l</span>
         </div>
         <div class="stat-box">
-          <span class="stat-box-label">Priem. spotreba jázd</span>
-          <span id="stat-avg-trip-consumption" class="stat-box-value">0.0 l/100km</span>
+          <span class="stat-box-label">Priem. spotreba</span>
+          <span id="stat-avg-trip-consumption" class="stat-box-value">0.0 l</span>
         </div>
       </div>
 
       <!-- Backup / Restore Card -->
       <div class="card mt-16">
         <div class="card-title">
-          <span class="icon">💾</span> Zálohovanie všetkých dát
+          <span class="icon">💾</span> Zálohovanie dát
         </div>
         <p class="card-description">
-          Tvoje dáta sú bezpečne uložené priamo v pamäti iPhonu. Tu si ich môžeš kedykoľvek stiahnuť ako zálohu.
+          Dáta sú bezpečne uložené v pamäti telefónu. Kedykoľvek si ich stiahni ako zálohu.
         </p>
         <button type="button" id="btn-export-data" class="btn-secondary mb-10">
           📤 Stiahnuť zálohu (JSON)
@@ -643,11 +644,11 @@
       </div>
 
       <div class="modal-description">
-        Pripojenie ku Google Firebase umožňuje prihlásiť sa a synchronizovať jazdy a tankovania medzi mobilom a počítačom v reálnom čase odkiaľkoľvek.
+        Pripojenie ku Google Firebase umožňuje synchronizovať jazdy a tankovania v reálnom čase odkiaľkoľvek.
       </div>
 
       <div class="modal-step">
-        <b>1. Vytvor si bezplatný projekt:</b> Na <a href="https://console.firebase.google.com" target="_blank" class="link">console.firebase.google.com</a>.
+        <b>1. Vytvor bezplatný projekt:</b> Na <a href="https://console.firebase.google.com" target="_blank" class="link">console.firebase.google.com</a>.
       </div>
       <div class="modal-step">
         <b>2. V projekte aktivuj:</b>
@@ -655,12 +656,12 @@
         <br>&bull; <i>Firestore Database</i> &rarr; Create database (Test mode)
       </div>
       <div class="modal-step">
-        <b>3. Vlož vygenerovanú konfiguráciu:</b> (Projekt &rarr; Nastavenia &rarr; Všeobecné &rarr; Vaše aplikácie &rarr; Web)
+        <b>3. Vlož vygenerovanú konfiguráciu:</b> (Projekt &rarr; Nastavenia &rarr; Vaše aplikácie &rarr; Web)
       </div>
       <div class="modal-step modal-step--warning">
         <b class="warning-title">4. DÔLEŽITÉ – Trvalé pravidlá (Rules):</b>
         <div class="modal-step-desc">
-          Po 30 dňoch testovací režim Firebase zablokuje zápis (Permission Denied). Aby cloud fungoval navždy, choď do <b>Firestore Database &rarr; Rules</b> a vlož:
+          Aby cloud fungoval navždy bez expirázie, choď do <b>Firestore Database &rarr; Rules</b> a vlož:
         </div>
         <pre class="code-block">rules_version = '2';
 service cloud.firestore {
@@ -670,10 +671,10 @@ service cloud.firestore {
     }
   }
 }</pre>
-        <div class="modal-step-hint">Následne klikni na <b>Publish</b> v konzole.</div>
+        <div class="modal-step-hint">Následne klikni na <b>Publish</b>.</div>
       </div>
 
-      <div class="form-group mt-10">
+      <div class="form-group mt-12">
         <label class="form-label" for="cloud-config-input">Vlož firebaseConfig (JSON alebo text):</label>
         <textarea id="cloud-config-input" class="input-field textarea-mono" rows="6" placeholder='{&#10;  "apiKey": "AIzaSy...",&#10;  "projectId": "spolujazda-...",&#10;  "appId": "..."&#10;}'></textarea>
       </div>
@@ -700,7 +701,7 @@ service cloud.firestore {
         <input type="hidden" id="edit-trip-id">
         <input type="hidden" id="edit-trip-docid">
 
-        <div class="form-group">
+        <div class="form-group mb-12">
           <label class="form-label">Trasa</label>
           <div class="segmented-control segmented-2col" id="edit-trip-route-group">
             <button type="button" class="segment-btn active" data-edit-route="pn-brno">PN ➔ Brno</button>
@@ -708,7 +709,7 @@ service cloud.firestore {
           </div>
         </div>
 
-        <div class="grid-2">
+        <div class="grid-2 mb-12">
           <div class="form-group">
             <label class="form-label" for="edit-trip-date">Dátum</label>
             <div class="input-wrapper">
@@ -724,9 +725,9 @@ service cloud.firestore {
           </div>
         </div>
 
-        <div class="grid-2 mt-10">
+        <div class="grid-2 mb-12">
           <div class="form-group">
-            <label class="form-label" for="edit-trip-consumption">Spotreba na 100 km</label>
+            <label class="form-label" for="edit-trip-consumption">Spotreba</label>
             <div class="input-wrapper">
               <input type="number" id="edit-trip-consumption" class="input-field" min="0" step="0.1" placeholder="6.5">
               <span class="input-unit">l/100km</span>
@@ -734,8 +735,8 @@ service cloud.firestore {
           </div>
           <div class="form-group">
             <label class="form-label" for="edit-trip-consumed-liters">
-              <span>Spotrebované palivo</span>
-              <span class="form-subtext">⚡ automaticky</span>
+              <span>Palivo</span>
+              <span class="form-subtext">⚡ auto</span>
             </label>
             <div class="input-wrapper">
               <input type="number" id="edit-trip-consumed-liters" class="input-field input-readonly" readonly tabindex="-1">
@@ -744,34 +745,39 @@ service cloud.firestore {
           </div>
         </div>
 
-        <div class="form-group mt-10">
-          <label class="form-checkbox-label toggle-label">
+        <!-- Edit: Ísť sám -->
+        <div class="option-row mb-12">
+          <label class="toggle-label" for="edit-toggle-no-passengers">
+            <div class="option-row-text">
+              <span class="option-row-title">🚗 Ísť sám (0 ľudí, 0 € zisk)</span>
+            </div>
             <input type="checkbox" id="edit-toggle-no-passengers" class="toggle-checkbox">
             <span class="toggle-switch"></span>
-            <span>🚗 Ísť sám / bez pasažierov (0 ľudí, 0 € zisk)</span>
           </label>
         </div>
 
         <div id="edit-passengers-section">
           <!-- Individuálna suma pre každého cestujúceho – prepínač -->
-          <div class="form-group mt-10" id="edit-toggle-individual-wrapper">
-            <label class="form-checkbox-label toggle-label toggle-label--blue">
+          <div class="option-row mb-12" id="edit-toggle-individual-wrapper">
+            <label class="toggle-label toggle-label--blue" for="edit-toggle-individual-prices">
+              <div class="option-row-text">
+                <span class="option-row-title option-row-title--blue">🎫 Individuálne sumy</span>
+              </div>
               <input type="checkbox" id="edit-toggle-individual-prices" class="toggle-checkbox">
               <span class="toggle-switch toggle-switch--blue"></span>
-              <span>🎫 Individuálna suma pre každého cestujúceho</span>
             </label>
           </div>
 
           <!-- Jednotná cena – grid s počtom a cenou -->
-          <div id="edit-uniform-price-section" class="grid-2 mt-12">
+          <div id="edit-uniform-price-section" class="grid-2 mb-12">
             <div class="form-group">
-              <label class="form-label" for="edit-trip-passengers">Pasažieri (plná trasa)</label>
+              <label class="form-label" for="edit-trip-passengers">Pasažieri</label>
               <div class="input-wrapper">
                 <input type="number" id="edit-trip-passengers" class="input-field" min="0" max="8" value="3">
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label" for="edit-trip-price-person">Cena na osobu</label>
+              <label class="form-label" for="edit-trip-price-person">Cena / osoba</label>
               <div class="input-wrapper">
                 <input type="number" id="edit-trip-price-person" class="input-field" min="0" step="0.5" value="7.50">
                 <span class="input-unit">€</span>
@@ -780,74 +786,71 @@ service cloud.firestore {
           </div>
 
           <!-- Individuálne ceny pre každého cestujúceho -->
-          <div id="edit-individual-prices-section" class="edit-individual-prices-section">
+          <div id="edit-individual-prices-section" class="edit-individual-prices-section mb-12" style="display:none;">
             <div class="form-group mb-8">
               <label class="form-label">Počet pasažierov</label>
               <div class="input-wrapper input-wrapper--narrow">
                 <input type="number" id="edit-individual-passenger-count" class="input-field" min="1" max="8" value="3">
               </div>
             </div>
-            <div id="edit-individual-price-rows">
-              <!-- Dynamicky generované -->
-            </div>
+            <div id="edit-individual-price-rows"></div>
             <div class="individual-total-row">
-              <label class="form-label individual-total-label">
-                <span>Spolu od cestujúcich</span>
-                <span class="form-subtext" style="display:block;">⚡ automaticky</span>
-              </label>
+              <span class="individual-total-label">Spolu od cestujúcich:</span>
               <span id="edit-individual-total-display" class="individual-total-amount">0.00 €</span>
             </div>
           </div>
 
           <!-- Pasažieri s nižšou sumou -->
-          <div class="form-group mt-12 pt-10 border-top-dashed">
-            <label class="form-checkbox-label toggle-label toggle-label--blue">
+          <div class="option-row mb-12">
+            <label class="toggle-label toggle-label--blue" for="edit-toggle-discount-passengers">
+              <div class="option-row-text">
+                <span class="option-row-title option-row-title--blue">➕ Zľavnená trasa (menej €)</span>
+              </div>
               <input type="checkbox" id="edit-toggle-discount-passengers" class="toggle-checkbox">
               <span class="toggle-switch toggle-switch--blue"></span>
-              <span>➕ Pasažieri s nižšou sumou (kratšia trasa)</span>
             </label>
-          </div>
 
-          <div id="edit-discount-container" class="discount-passengers-box" style="display: none;">
-            <div class="grid-2">
-              <div class="form-group">
-                <label class="form-label" for="edit-discount-count">Počet ľudí (menej)</label>
-                <div class="input-wrapper">
-                  <input type="number" id="edit-discount-count" class="input-field" value="1" min="1" max="6">
+            <div id="edit-discount-container" class="option-subdetails" style="display: none;">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label" for="edit-discount-count">Počet ľudí</label>
+                  <div class="input-wrapper">
+                    <input type="number" id="edit-discount-count" class="input-field" value="1" min="1" max="6">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="edit-discount-price">Suma / osoba</label>
+                  <div class="input-wrapper">
+                    <input type="number" id="edit-discount-price" class="input-field" value="5.00" min="0" step="0.5">
+                    <span class="input-unit">€</span>
+                  </div>
                 </div>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="edit-discount-price">Suma za osobu</label>
+              <div class="form-group mt-8">
+                <label class="form-label" for="edit-discount-note">Miesto vysadenia / Poznámka</label>
                 <div class="input-wrapper">
-                  <input type="number" id="edit-discount-price" class="input-field" value="5.00" min="0" step="0.5">
-                  <span class="input-unit">€</span>
+                  <input type="text" id="edit-discount-note" class="input-field" placeholder="napr. Nové Mesto">
                 </div>
-              </div>
-            </div>
-            <div class="form-group mt-8">
-              <label class="form-label" for="edit-discount-note">Miesto vysadenia / Poznámka</label>
-              <div class="input-wrapper">
-                <input type="text" id="edit-discount-note" class="input-field" placeholder="napr. Nové Mesto">
               </div>
             </div>
           </div>
         </div>
 
         <!-- Edit Platba v hotovosti -->
-        <div class="option-card option-card--green mt-14" id="edit-cash-payment-group">
-          <label class="form-checkbox-label toggle-label toggle-label--green">
+        <div class="option-row mb-12" id="edit-cash-payment-group">
+          <label class="toggle-label toggle-label--green" for="edit-toggle-cash-payment">
+            <div class="option-row-text">
+              <span class="option-row-title option-row-title--green">💵 Platba v hotovosti</span>
+              <span class="option-row-subtitle">Vynechá sa z prevodu na účet</span>
+            </div>
             <input type="checkbox" id="edit-toggle-cash-payment" class="toggle-checkbox">
             <span class="toggle-switch toggle-switch--green"></span>
-            <div class="option-card-text">
-              <span class="option-card-title option-card-title--green">💵 Platba v hotovosti (do ruky)</span>
-              <span class="form-subtext">Vynechá hotovosť z počítadla prevodu na osobný účet.</span>
-            </div>
           </label>
 
-          <div id="edit-cash-payment-details" class="option-card-details" style="display: none;">
+          <div id="edit-cash-payment-details" class="option-subdetails" style="display: none;">
             <div class="grid-2">
               <div class="form-group">
-                <label class="form-label" for="edit-cash-passengers-count">Počet ľudí v hotovosti</label>
+                <label class="form-label" for="edit-cash-passengers-count">Počet v hotovosti</label>
                 <div class="input-wrapper">
                   <input type="number" id="edit-cash-passengers-count" class="input-field" min="1" max="8" value="1">
                 </div>
@@ -863,18 +866,18 @@ service cloud.firestore {
           </div>
         </div>
 
-        <div class="form-group mt-14">
+        <div class="form-group mb-14">
           <label class="form-label" for="edit-trip-total-fare">
             <span>Spolu od ľudí</span>
-            <span class="form-subtext">⚡ automaticky</span>
+            <span class="form-subtext">⚡ auto</span>
           </label>
           <div class="input-wrapper">
-            <input type="number" id="edit-trip-total-fare" class="input-field input-readonly" value="22.50" readonly tabindex="-1">
+            <input type="number" id="edit-trip-total-fare" class="input-field input-readonly font-bold font-green" value="22.50" readonly tabindex="-1">
             <span class="input-unit">€</span>
           </div>
         </div>
 
-        <button type="button" id="btn-save-edit-trip" class="btn-primary mt-16">
+        <button type="button" id="btn-save-edit-trip" class="btn-primary btn-large">
           💾 Uložiť zmeny jazdy
         </button>
       </form>
@@ -893,18 +896,18 @@ service cloud.firestore {
         <input type="hidden" id="edit-refuel-id">
         <input type="hidden" id="edit-refuel-docid">
 
-        <div class="form-group">
+        <div class="form-group mb-12">
           <label class="form-label" for="edit-refuel-date">Dátum tankovania</label>
           <div class="input-wrapper">
             <input type="date" id="edit-refuel-date" class="input-field" required>
           </div>
         </div>
 
-        <div class="grid-2">
+        <div class="grid-2 mb-12">
           <div class="form-group">
             <label class="form-label" for="edit-refuel-total-price">Suma celkovo</label>
             <div class="input-wrapper">
-              <input type="number" id="edit-refuel-total-price" class="input-field" step="0.01" min="0" placeholder="0.00" required>
+              <input type="number" id="edit-refuel-total-price" class="input-field font-bold font-blue" step="0.01" min="0" placeholder="0.00" required>
               <span class="input-unit">€</span>
             </div>
           </div>
@@ -917,7 +920,7 @@ service cloud.firestore {
           </div>
         </div>
 
-        <div class="grid-2">
+        <div class="grid-2 mb-12">
           <div class="form-group">
             <label class="form-label" for="edit-refuel-price-per-l">Cena za liter</label>
             <div class="input-wrapper">
@@ -934,14 +937,14 @@ service cloud.firestore {
           </div>
         </div>
 
-        <div class="form-group mt-10">
+        <div class="form-group mb-12">
           <label class="form-label" for="edit-refuel-station">Čerpacia stanica</label>
           <div class="input-wrapper">
             <input type="text" id="edit-refuel-station" class="input-field" placeholder="napr. OMV, Slovnaft, Orlen">
           </div>
         </div>
 
-        <div class="form-group mt-10">
+        <div class="receipt-section mb-14">
           <label class="form-label">
             <span>📷 Bločok z tankovania</span>
             <span class="form-subtext">voliteľné</span>
@@ -950,13 +953,17 @@ service cloud.firestore {
           <button type="button" class="btn-secondary btn-receipt-upload" id="btn-edit-refuel-receipt-trigger">
             <span>📷</span> Zmeniť alebo pridať bločok
           </button>
-          <div class="form-group mt-8 mb-6">
-            <label class="form-checkbox-label toggle-label toggle-label--green-sm">
+          
+          <div class="option-row mt-8">
+            <label class="toggle-label toggle-label--green-sm" for="edit-refuel-enable-ocr">
+              <div class="option-row-text">
+                <span class="option-row-title">🤖 Vyčítať údaje z bločku (OCR)</span>
+              </div>
               <input type="checkbox" id="edit-refuel-enable-ocr" checked class="toggle-checkbox">
               <span class="toggle-switch toggle-switch--green"></span>
-              <span>🤖 Automaticky vyčítať údaje z bločku (OCR)</span>
             </label>
           </div>
+
           <div id="edit-refuel-receipt-preview-container" class="receipt-preview-container" style="display: none;">
             <div class="receipt-preview-card">
               <img id="edit-refuel-receipt-preview-img" src="" alt="Náhľad bločku" class="receipt-preview-thumbnail">
@@ -970,24 +977,24 @@ service cloud.firestore {
               <span id="edit-refuel-receipt-ocr-text">Spracovávam bločok pomocou OCR...</span>
             </div>
             <button type="button" class="btn-secondary btn-rerun-ocr" id="btn-edit-refuel-rerun-ocr" style="display: none;">
-              🔄 Znova vyčítať údaje z bločku (OCR)
+              🔄 Znova vyčítať údaje (OCR)
             </button>
           </div>
         </div>
 
         <!-- Zaplatené z účtu (edit modal) -->
-        <div class="option-card option-card--blue mt-12">
-          <label class="form-checkbox-label toggle-label toggle-label--blue-strong">
+        <div class="option-row mb-14">
+          <label class="toggle-label toggle-label--blue-strong" for="edit-refuel-paid-from-account">
+            <div class="option-row-text">
+              <span class="option-row-title option-row-title--blue">💳 Zaplatené z účtu (spolujazdy)</span>
+              <span class="option-row-subtitle">Odpočíta sumu z počítadla prevodu</span>
+            </div>
             <input type="checkbox" id="edit-refuel-paid-from-account" class="toggle-checkbox">
             <span class="toggle-switch toggle-switch--blue"></span>
-            <div class="option-card-text">
-              <span class="option-card-title option-card-title--blue">💳 Zaplatené z účtu (spolujazdy)</span>
-              <span class="form-subtext">Odpočíta sumu z počítadla prevodu na osobný účet</span>
-            </div>
           </label>
         </div>
 
-        <button type="button" id="btn-save-edit-refuel" class="btn-primary mt-16">
+        <button type="button" id="btn-save-edit-refuel" class="btn-primary btn-large">
           💾 Uložiť zmeny tankovania
         </button>
       </form>
