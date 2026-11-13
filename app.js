@@ -1751,7 +1751,8 @@ async function saveTrip() {
     cashPassengers: (state.noPassengers || !state.hasCashPayment) ? 0 : (state.cashPassengers || 1),
     cashAmount: (state.noPassengers || !state.hasCashPayment) ? 0 : (parseFloat(state.cashAmount) || 0),
     totalPassengers: totalCount,
-    totalFare: income
+    totalFare: income,
+    paidPassengers: new Array(totalCount).fill(false)
   };
 
   let savedToCloud = false;
@@ -2253,7 +2254,8 @@ async function saveEditedTrip() {
     cashPassengers: cashPassengers,
     cashAmount: cashAmount,
     totalPassengers: totalCount,
-    totalFare: totalFare
+    totalFare: totalFare,
+    paidPassengers: (state.trips.find(t => t.id === tripId || (docId && t.docId === docId))?.paidPassengers) || []
   };
 
   let updatedInCloud = false;
@@ -2707,28 +2709,143 @@ function renderFuelTab() {
 
   container.innerHTML = refuels.map(r => `
     <div class="trip-item">
-      <div class="trip-left">
-        <div class="trip-route">
-          <span class="history-badge fuel">⛽ Tankovanie</span> ${r.station}
+      <div class="trip-main-row">
+        <div class="trip-left">
+          <div class="trip-route">
+            <span class="history-badge fuel">⛽ Tankovanie</span> ${r.station}
+          </div>
+          <div class="trip-meta">
+            <span>📅 ${formatDate(r.date)}</span>
+            ${r.liters > 0 ? `<span>💧 ${r.liters.toFixed(1)} l</span>` : ''}
+            ${r.pricePerL > 0 ? `<span>💶 ${r.pricePerL.toFixed(3)} €/l</span>` : ''}
+            ${r.odometer ? `<span>📍 ${r.odometer} km</span>` : ''}
+            ${r.paidFromAccount ? `<span>💳 Z účtu</span>` : ''}
+            ${r.receiptImage ? `<button type="button" class="receipt-view-btn" onclick="window.appViewReceipt(${r.id}, '${r.docId || ''}')">🧾 Bloček</button>` : ''}
+          </div>
         </div>
-        <div class="trip-meta">
-          <span>📅 ${formatDate(r.date)}</span>
-          ${r.liters > 0 ? `<span>💧 ${r.liters.toFixed(1)} l</span>` : ''}
-          ${r.pricePerL > 0 ? `<span>💶 ${r.pricePerL.toFixed(3)} €/l</span>` : ''}
-          ${r.odometer ? `<span>📍 ${r.odometer} km</span>` : ''}
-          ${r.paidFromAccount ? `<span>💳 Z účtu</span>` : ''}
-          ${r.receiptImage ? `<button type="button" class="receipt-view-btn" onclick="window.appViewReceipt(${r.id}, '${r.docId || ''}')">🧾 Bloček</button>` : ''}
-        </div>
-      </div>
-      <div class="trip-right">
-        <div class="trip-profit negative">-${r.totalPrice.toFixed(2)} €</div>
-        <div class="trip-actions">
-          <button class="trip-edit-btn" onclick="window.appEditRefuel(${r.id}, '${r.docId || ''}')">✏️ Upraviť</button>
-          <button class="trip-delete-btn" onclick="window.appDeleteRefuel(${r.id}, '${r.docId || ''}')">Odstrániť</button>
+        <div class="trip-right">
+          <div class="trip-profit negative">-${r.totalPrice.toFixed(2)} €</div>
+          <div class="trip-actions">
+            <button class="trip-edit-btn" onclick="window.appEditRefuel(${r.id}, '${r.docId || ''}')">✏️ Upraviť</button>
+            <button class="trip-delete-btn" onclick="window.appDeleteRefuel(${r.id}, '${r.docId || ''}')">Odstrániť</button>
+          </div>
         </div>
       </div>
     </div>
   `).join('');
+}
+
+function getTripPassengerList(item) {
+  if (item.noPassengers || (item.passengers === 0 && !item.hasDiscountPassengers)) {
+    return [];
+  }
+  const list = [];
+  if (item.individualPrices && Array.isArray(item.passengerPrices) && item.passengerPrices.length > 0) {
+    item.passengerPrices.forEach((price, idx) => {
+      list.push({
+        index: idx,
+        label: `Cestujúci ${idx + 1}`,
+        price: parseFloat(price) || 0
+      });
+    });
+  } else {
+    const normalCount = item.passengers !== undefined ? item.passengers : 3;
+    const normalPrice = item.pricePerPerson !== undefined ? item.pricePerPerson : 7.50;
+    for (let i = 0; i < normalCount; i++) {
+      list.push({
+        index: i,
+        label: `Cestujúci ${i + 1}`,
+        price: normalPrice
+      });
+    }
+    if (item.hasDiscountPassengers && item.discountPassengers > 0) {
+      const discCount = item.discountPassengers;
+      const discPrice = item.discountPrice !== undefined ? item.discountPrice : 5.00;
+      const note = item.discountNote ? ` (${item.discountNote})` : '';
+      for (let j = 0; j < discCount; j++) {
+        list.push({
+          index: normalCount + j,
+          label: `Cestujúci ${normalCount + j + 1}${note}`,
+          price: discPrice
+        });
+      }
+    }
+  }
+  return list;
+}
+
+async function togglePassengerPaid(tripId, docId, passengerIndex) {
+  const trip = state.trips.find(t => t.id === tripId || (docId && t.docId === docId));
+  if (!trip) return;
+
+  const passengersList = getTripPassengerList(trip);
+  if (!Array.isArray(trip.paidPassengers)) {
+    trip.paidPassengers = new Array(passengersList.length).fill(false);
+  }
+  while (trip.paidPassengers.length < passengersList.length) {
+    trip.paidPassengers.push(false);
+  }
+
+  trip.paidPassengers[passengerIndex] = !trip.paidPassengers[passengerIndex];
+  const newState = trip.paidPassengers[passengerIndex];
+
+  const activeDocId = trip.docId || docId;
+  if (state.isCloudMode && state.firebaseUser && activeDocId) {
+    try {
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(state.firebaseDb, 'users', state.firebaseUser.uid, 'trips', activeDocId), {
+        paidPassengers: trip.paidPassengers
+      });
+    } catch (err) {
+      console.warn('Nepodarilo sa uložiť platbu na Cloud, ukladám lokálne:', err);
+    }
+  }
+
+  saveLocalStoredTrips(state.trips);
+  renderHistory();
+  renderStats();
+
+  const pName = passengersList[passengerIndex] ? passengersList[passengerIndex].label : `Cestujúci ${passengerIndex + 1}`;
+  if (newState) {
+    showToast(`✅ ${pName}: zaplatené na účet ✓`);
+  } else {
+    showToast(`ℹ️ ${pName}: platba zrušená`);
+  }
+}
+
+async function toggleAllPassengersPaid(tripId, docId) {
+  const trip = state.trips.find(t => t.id === tripId || (docId && t.docId === docId));
+  if (!trip) return;
+
+  const passengersList = getTripPassengerList(trip);
+  if (!Array.isArray(trip.paidPassengers)) {
+    trip.paidPassengers = new Array(passengersList.length).fill(false);
+  }
+  while (trip.paidPassengers.length < passengersList.length) {
+    trip.paidPassengers.push(false);
+  }
+
+  const allPaid = trip.paidPassengers.slice(0, passengersList.length).every(Boolean);
+  const newState = !allPaid;
+  trip.paidPassengers = new Array(passengersList.length).fill(newState);
+
+  const activeDocId = trip.docId || docId;
+  if (state.isCloudMode && state.firebaseUser && activeDocId) {
+    try {
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(state.firebaseDb, 'users', state.firebaseUser.uid, 'trips', activeDocId), {
+        paidPassengers: trip.paidPassengers
+      });
+    } catch (err) {
+      console.warn('Nepodarilo sa uložiť na Cloud:', err);
+    }
+  }
+
+  saveLocalStoredTrips(state.trips);
+  renderHistory();
+  renderStats();
+
+  showToast(newState ? '✅ Všetci pasažieri označení ako zaplatení!' : 'ℹ️ Označenie platieb zrušené.');
 }
 
 function renderHistory() {
@@ -2798,50 +2915,101 @@ function renderHistory() {
         cashInfo = `<span style="color: #34D399; font-weight: 600;">💵 ${cashVal.toFixed(2)} € v hotovosti</span>`;
       }
 
+      // Platby pasažierov na účet (Fajky)
+      let paymentsHtml = '';
+      const pList = getTripPassengerList(item);
+      if (pList.length > 0) {
+        const paidArr = Array.isArray(item.paidPassengers) ? item.paidPassengers : [];
+        const paidCount = pList.filter(p => !!paidArr[p.index]).length;
+        const paidSum = pList.filter(p => !!paidArr[p.index]).reduce((acc, p) => acc + p.price, 0);
+        const totalSum = pList.reduce((acc, p) => acc + p.price, 0);
+        const allPaid = paidCount === pList.length && pList.length > 0;
+
+        const chipsHtml = pList.map(p => {
+          const isPaid = !!paidArr[p.index];
+          return `
+            <button type="button" 
+                    class="passenger-pay-chip ${isPaid ? 'is-paid' : ''}" 
+                    onclick="window.appTogglePassengerPaid(${item.id}, '${item.docId || ''}', ${p.index})"
+                    title="${isPaid ? 'Zaplatené na účet (klikni pre zrušenie)' : 'Klikni na fajku pre označenie že poslal peniaze na účet'}">
+              <span class="pay-check-box">${isPaid ? '✓' : ''}</span>
+              <span class="pay-passenger-name">${p.label}</span>
+              <span class="pay-passenger-amount">${p.price.toFixed(2)} €</span>
+            </button>
+          `;
+        }).join('');
+
+        paymentsHtml = `
+          <div class="trip-payments-section">
+            <div class="trip-payments-header">
+              <span class="trip-payments-title">
+                <span>💳</span> Poslané na účet:
+              </span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="trip-payments-summary ${allPaid ? 'all-paid' : ''}">
+                  ${allPaid ? `✅ Všetci zaplatili (${paidSum.toFixed(2)} €)` : `⏳ ${paidCount}/${pList.length} (${paidSum.toFixed(2)} € / ${totalSum.toFixed(2)} €)`}
+                </span>
+                <button type="button" class="btn-toggle-all-paid" onclick="window.appToggleAllPassengersPaid(${item.id}, '${item.docId || ''}')" title="Označiť všetkých / zrušiť">
+                  ${allPaid ? 'Zrušiť' : '✓ Všetci'}
+                </button>
+              </div>
+            </div>
+            <div class="trip-payments-chips">
+              ${chipsHtml}
+            </div>
+          </div>
+        `;
+      }
+
       return `
         <div class="trip-item">
-          <div class="trip-left">
-            <div class="trip-route">
-              <span class="history-badge trip">🚗 Jazda</span> ${item.routeLabel}
+          <div class="trip-main-row">
+            <div class="trip-left">
+              <div class="trip-route">
+                <span class="history-badge trip">🚗 Jazda</span> ${item.routeLabel}
+              </div>
+              <div class="trip-meta">
+                <span>📅 ${formatDate(item.date)}</span>
+                <span>🛣️ ${item.distanceKm} km</span>
+                <span>👥 ${passengerInfo}</span>
+                ${fuelInfo}
+                ${cashInfo}
+              </div>
             </div>
-            <div class="trip-meta">
-              <span>📅 ${formatDate(item.date)}</span>
-              <span>🛣️ ${item.distanceKm} km</span>
-              <span>👥 ${passengerInfo}</span>
-              ${fuelInfo}
-              ${cashInfo}
+            <div class="trip-right">
+              <div class="trip-profit positive">+${fare.toFixed(2)} €</div>
+              <div class="trip-actions">
+                <button class="trip-edit-btn" onclick="window.appEditTrip(${item.id}, '${item.docId || ''}')">✏️ Upraviť</button>
+                <button class="trip-delete-btn" onclick="window.appDeleteTrip(${item.id}, '${item.docId || ''}')">Odstrániť</button>
+              </div>
             </div>
           </div>
-          <div class="trip-right">
-            <div class="trip-profit positive">+${fare.toFixed(2)} €</div>
-            <div class="trip-actions">
-              <button class="trip-edit-btn" onclick="window.appEditTrip(${item.id}, '${item.docId || ''}')">✏️ Upraviť</button>
-              <button class="trip-delete-btn" onclick="window.appDeleteTrip(${item.id}, '${item.docId || ''}')">Odstrániť</button>
-            </div>
-          </div>
+          ${paymentsHtml}
         </div>
       `;
     } else {
       return `
         <div class="trip-item">
-          <div class="trip-left">
-            <div class="trip-route">
-              <span class="history-badge fuel">⛽ Tankovanie</span> ${item.station}
+          <div class="trip-main-row">
+            <div class="trip-left">
+              <div class="trip-route">
+                <span class="history-badge fuel">⛽ Tankovanie</span> ${item.station}
+              </div>
+              <div class="trip-meta">
+                <span>📅 ${formatDate(item.date)}</span>
+                ${item.liters > 0 ? `<span>💧 ${item.liters.toFixed(1)} l</span>` : ''}
+                ${item.pricePerL > 0 ? `<span>💶 ${item.pricePerL.toFixed(3)} €/l</span>` : ''}
+                ${item.odometer ? `<span>📍 ${item.odometer} km</span>` : ''}
+                ${item.paidFromAccount ? `<span>💳 Z účtu</span>` : ''}
+                ${item.receiptImage ? `<button type="button" class="receipt-view-btn" onclick="window.appViewReceipt(${item.id}, '${item.docId || ''}')">🧾 Bloček</button>` : ''}
+              </div>
             </div>
-            <div class="trip-meta">
-              <span>📅 ${formatDate(item.date)}</span>
-              ${item.liters > 0 ? `<span>💧 ${item.liters.toFixed(1)} l</span>` : ''}
-              ${item.pricePerL > 0 ? `<span>💶 ${item.pricePerL.toFixed(3)} €/l</span>` : ''}
-              ${item.odometer ? `<span>📍 ${item.odometer} km</span>` : ''}
-              ${item.paidFromAccount ? `<span>💳 Z účtu</span>` : ''}
-              ${item.receiptImage ? `<button type="button" class="receipt-view-btn" onclick="window.appViewReceipt(${item.id}, '${item.docId || ''}')">🧾 Bloček</button>` : ''}
-            </div>
-          </div>
-          <div class="trip-right">
-            <div class="trip-profit negative">-${item.totalPrice.toFixed(2)} €</div>
-            <div class="trip-actions">
-              <button class="trip-edit-btn" onclick="window.appEditRefuel(${item.id}, '${item.docId || ''}')">✏️ Upraviť</button>
-              <button class="trip-delete-btn" onclick="window.appDeleteRefuel(${item.id}, '${item.docId || ''}')">Odstrániť</button>
+            <div class="trip-right">
+              <div class="trip-profit negative">-${item.totalPrice.toFixed(2)} €</div>
+              <div class="trip-actions">
+                <button class="trip-edit-btn" onclick="window.appEditRefuel(${item.id}, '${item.docId || ''}')">✏️ Upraviť</button>
+                <button class="trip-delete-btn" onclick="window.appDeleteRefuel(${item.id}, '${item.docId || ''}')">Odstrániť</button>
+              </div>
             </div>
           </div>
         </div>
@@ -3037,3 +3205,5 @@ window.appEditTrip = openEditTrip;
 window.appEditRefuel = openEditRefuel;
 window.appMarkTransferCompleted = markTransferCompleted;
 window.appViewReceipt = openReceiptModal;
+window.appTogglePassengerPaid = togglePassengerPaid;
+window.appToggleAllPassengersPaid = toggleAllPassengersPaid;
