@@ -43,6 +43,12 @@ let state = {
   hasCashPayment: false,
   cashPassengers: 1,
   cashAmount: 0.00,
+  hasCzkPayment: false,
+  czkPassengers: 1,
+  czkPricePerPerson: 200,
+  czkAmount: 200,
+  czkRate: 25.00,
+  czkEurAmount: 8.00,
   totalPassengerFare: 22.50,
 
   // In-memory cache for trips, refuels and bank transfers
@@ -105,6 +111,13 @@ const toggleCashPayment = document.getElementById('toggle-cash-payment');
 const cashPaymentDetails = document.getElementById('cash-payment-details');
 const inputCashPassengersCount = document.getElementById('cash-passengers-count');
 const inputCashAmount = document.getElementById('cash-amount');
+const toggleCzkPayment = document.getElementById('toggle-czk-payment');
+const czkPaymentDetails = document.getElementById('czk-payment-details');
+const inputCzkPassengersCount = document.getElementById('czk-passengers-count');
+const inputCzkPricePerPerson = document.getElementById('czk-price-per-person');
+const inputCzkAmount = document.getElementById('czk-amount');
+const inputCzkRate = document.getElementById('czk-rate');
+const inputCzkEurAmount = document.getElementById('czk-eur-amount');
 
 // Trip Displays
 const profitBanner = document.getElementById('profit-banner');
@@ -1138,7 +1151,10 @@ function getPendingTransferAmount() {
     const cash = t.cashAmount !== undefined
       ? (t.cashAmount || 0)
       : (t.hasCashPayment ? fare : 0);
-    const bankFare = Math.max(0, fare - cash);
+    const czkEur = t.czkEurAmount !== undefined
+      ? (t.czkEurAmount || 0)
+      : (t.hasCzkPayment ? (((t.czkAmount !== undefined ? t.czkAmount : 0)) / (t.czkRate || 25.00)) : 0);
+    const bankFare = Math.max(0, fare - cash - czkEur);
     return sum + bankFare;
   }, 0);
   const totalFuelFromAccount = refuels
@@ -1305,6 +1321,10 @@ function initEventListeners() {
     if (state.hasDiscountPassengers) {
       fare += (state.discountPassengers || 0) * (state.discountPrice || 0);
     }
+    if (state.hasCzkPayment) {
+      updateCzkPaymentCalculation(false);
+      fare += (state.czkEurAmount || 0);
+    }
     state.totalPassengerFare = parseFloat(fare.toFixed(2));
     inputTotalFare.value = state.totalPassengerFare.toFixed(2);
     if (state.hasCashPayment) {
@@ -1318,6 +1338,7 @@ function initEventListeners() {
       state.noPassengers = e.target.checked;
 
       const cashGroup = document.getElementById('cash-payment-group');
+      const czkGroup = document.getElementById('czk-payment-group');
 
       if (state.noPassengers) {
         // Disable stepper and discount controls
@@ -1338,6 +1359,10 @@ function initEventListeners() {
           cashGroup.style.opacity = '0.4';
           cashGroup.style.pointerEvents = 'none';
         }
+        if (czkGroup) {
+          czkGroup.style.opacity = '0.4';
+          czkGroup.style.pointerEvents = 'none';
+        }
       } else {
         if (stepperContainer) {
           stepperContainer.style.opacity = '1';
@@ -1355,6 +1380,10 @@ function initEventListeners() {
         if (cashGroup) {
           cashGroup.style.opacity = '1';
           cashGroup.style.pointerEvents = 'auto';
+        }
+        if (czkGroup) {
+          czkGroup.style.opacity = '1';
+          czkGroup.style.pointerEvents = 'auto';
         }
       }
 
@@ -1383,7 +1412,8 @@ function initEventListeners() {
 
   btnMinus.addEventListener('click', () => {
     if (state.noPassengers) return;
-    if (state.passengers > 1) {
+    const minPass = (state.hasDiscountPassengers || state.hasCzkPayment) ? 0 : 1;
+    if (state.passengers > minPass) {
       state.passengers--;
       stepperVal.textContent = state.passengers;
       if (state.individualPrices) {
@@ -1493,6 +1523,86 @@ function initEventListeners() {
       const val = parseFloat(e.target.value);
       state.cashAmount = isNaN(val) ? 0 : Math.max(0, val);
       updateCashPaymentCalculation(true);
+    });
+  }
+
+  function updateCzkPaymentCalculation(isUserTypingCzkAmount = false) {
+    if (!state.hasCzkPayment) {
+      state.czkEurAmount = 0;
+      return;
+    }
+    const passengers = state.czkPassengers || 1;
+    const pricePerPerson = state.czkPricePerPerson !== undefined ? state.czkPricePerPerson : 200;
+    const rate = (state.czkRate && state.czkRate > 0) ? state.czkRate : 25.00;
+
+    if (!isUserTypingCzkAmount) {
+      state.czkAmount = passengers * pricePerPerson;
+      if (inputCzkAmount) inputCzkAmount.value = state.czkAmount;
+    }
+
+    const eur = parseFloat(((state.czkAmount || 0) / rate).toFixed(2));
+    state.czkEurAmount = eur;
+    if (inputCzkEurAmount) inputCzkEurAmount.value = eur.toFixed(2);
+  }
+
+  if (toggleCzkPayment) {
+    toggleCzkPayment.addEventListener('change', (e) => {
+      state.hasCzkPayment = e.target.checked;
+      if (czkPaymentDetails) {
+        czkPaymentDetails.style.display = state.hasCzkPayment ? 'block' : 'none';
+      }
+      if (state.hasCzkPayment) {
+        if (!inputCzkPassengersCount.value) inputCzkPassengersCount.value = '1';
+        if (!inputCzkPricePerPerson.value) inputCzkPricePerPerson.value = '200';
+        if (!inputCzkRate.value) inputCzkRate.value = '25.00';
+        state.czkPassengers = parseInt(inputCzkPassengersCount.value) || 1;
+        state.czkPricePerPerson = parseFloat(inputCzkPricePerPerson.value) || 200;
+        state.czkRate = parseFloat(inputCzkRate.value) || 25.00;
+        updateCzkPaymentCalculation(false);
+      } else {
+        state.czkEurAmount = 0.00;
+        if (state.passengers === 0 && !state.hasDiscountPassengers) {
+          state.passengers = 1;
+          if (stepperVal) stepperVal.textContent = 1;
+        }
+      }
+      updatePassengerFare();
+    });
+  }
+
+  if (inputCzkPassengersCount) {
+    inputCzkPassengersCount.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      state.czkPassengers = isNaN(val) ? 1 : Math.max(1, val);
+      updateCzkPaymentCalculation(false);
+      updatePassengerFare();
+    });
+  }
+
+  if (inputCzkPricePerPerson) {
+    inputCzkPricePerPerson.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      state.czkPricePerPerson = isNaN(val) ? 0 : Math.max(0, val);
+      updateCzkPaymentCalculation(false);
+      updatePassengerFare();
+    });
+  }
+
+  if (inputCzkAmount) {
+    inputCzkAmount.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      state.czkAmount = isNaN(val) ? 0 : Math.max(0, val);
+      updateCzkPaymentCalculation(true);
+      updatePassengerFare();
+    });
+  }
+
+  if (inputCzkRate) {
+    inputCzkRate.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      state.czkRate = (isNaN(val) || val <= 0) ? 25.00 : val;
+      updateCzkPaymentCalculation(false);
+      updatePassengerFare();
     });
   }
 
@@ -1681,10 +1791,12 @@ function recalculateTrip() {
   if (displayPricePerson) {
     if (state.noPassengers) {
       displayPricePerson.textContent = `0.00 €`;
-    } else if (state.hasDiscountPassengers && state.discountPassengers > 0) {
-      displayPricePerson.textContent = `${state.pricePerPerson.toFixed(2)} € + zľav.`;
     } else {
-      displayPricePerson.textContent = `${state.pricePerPerson.toFixed(2)} €`;
+      let parts = [];
+      if (state.passengers > 0) parts.push(`${state.pricePerPerson.toFixed(2)} €`);
+      if (state.hasDiscountPassengers && state.discountPassengers > 0) parts.push(`zľav.`);
+      if (state.hasCzkPayment && state.czkPassengers > 0) parts.push(`${state.czkPricePerPerson} Kč`);
+      displayPricePerson.textContent = parts.length > 0 ? parts.join(' + ') : `0.00 €`;
     }
   }
 
@@ -1692,7 +1804,7 @@ function recalculateTrip() {
     if (state.noPassengers) {
       displayPassengers.textContent = `0 ľudí (sám)`;
     } else {
-      const totalCount = state.passengers + (state.hasDiscountPassengers ? state.discountPassengers : 0);
+      const totalCount = (state.passengers || 0) + (state.hasDiscountPassengers ? (state.discountPassengers || 0) : 0) + (state.hasCzkPayment ? (state.czkPassengers || 0) : 0);
       const word = totalCount === 1 ? 'človek' : (totalCount < 5 ? 'ľudia' : 'ľudí');
       displayPassengers.textContent = `${totalCount} ${word}`;
     }
@@ -1727,7 +1839,11 @@ async function saveTrip() {
   const income = parseFloat((state.totalPassengerFare || 0).toFixed(2));
   const routeKey = state.routeType || 'pn-brno';
   const routeLabel = ROUTES[routeKey] ? ROUTES[routeKey].label : 'Jazda';
-  const totalCount = state.noPassengers ? 0 : ((state.passengers || 0) + (state.hasDiscountPassengers ? (state.discountPassengers || 0) : 0));
+  const totalCount = state.noPassengers ? 0 : (
+    (state.passengers || 0) +
+    (state.hasDiscountPassengers ? (state.discountPassengers || 0) : 0) +
+    (state.hasCzkPayment ? (state.czkPassengers || 0) : 0)
+  );
 
   const trip = {
     id: Date.now(),
@@ -1750,6 +1866,12 @@ async function saveTrip() {
     hasCashPayment: (state.noPassengers || !state.hasCashPayment) ? false : true,
     cashPassengers: (state.noPassengers || !state.hasCashPayment) ? 0 : (state.cashPassengers || 1),
     cashAmount: (state.noPassengers || !state.hasCashPayment) ? 0 : (parseFloat(state.cashAmount) || 0),
+    hasCzkPayment: (state.noPassengers || !state.hasCzkPayment) ? false : true,
+    czkPassengers: (state.noPassengers || !state.hasCzkPayment) ? 0 : (state.czkPassengers || 1),
+    czkPricePerPerson: (state.noPassengers || !state.hasCzkPayment) ? 0 : (parseFloat(state.czkPricePerPerson) || 200),
+    czkAmount: (state.noPassengers || !state.hasCzkPayment) ? 0 : (parseFloat(state.czkAmount) || 0),
+    czkRate: (state.noPassengers || !state.hasCzkPayment) ? 25.00 : (parseFloat(state.czkRate) || 25.00),
+    czkEurAmount: (state.noPassengers || !state.hasCzkPayment) ? 0 : (parseFloat(state.czkEurAmount) || 0),
     totalPassengers: totalCount,
     totalFare: income,
     paidPassengers: new Array(totalCount).fill(false)
@@ -1853,6 +1975,22 @@ function resetTripForm() {
   if (inputCashAmount) inputCashAmount.value = '';
   const cashGroup = document.getElementById('cash-payment-group');
   if (cashGroup) { cashGroup.style.opacity = '1'; cashGroup.style.pointerEvents = 'auto'; }
+
+  state.hasCzkPayment = false;
+  state.czkPassengers = 1;
+  state.czkPricePerPerson = 200;
+  state.czkAmount = 200;
+  state.czkRate = 25.00;
+  state.czkEurAmount = 8.00;
+  if (toggleCzkPayment) toggleCzkPayment.checked = false;
+  if (czkPaymentDetails) czkPaymentDetails.style.display = 'none';
+  if (inputCzkPassengersCount) inputCzkPassengersCount.value = '1';
+  if (inputCzkPricePerPerson) inputCzkPricePerPerson.value = '200';
+  if (inputCzkAmount) inputCzkAmount.value = '200';
+  if (inputCzkRate) inputCzkRate.value = '25.00';
+  if (inputCzkEurAmount) inputCzkEurAmount.value = '8.00';
+  const czkGroup = document.getElementById('czk-payment-group');
+  if (czkGroup) { czkGroup.style.opacity = '1'; czkGroup.style.pointerEvents = 'auto'; }
 
   state.totalPassengerFare = 22.50;
   inputTotalFare.value = '22.50';
@@ -2090,6 +2228,33 @@ function openEditTrip(tripId, docId) {
     editCashGroup.style.pointerEvents = isNoPass ? 'none' : 'auto';
   }
 
+  // CZK payment in edit modal
+  const editToggleCzk = document.getElementById('edit-toggle-czk-payment');
+  const editCzkDetails = document.getElementById('edit-czk-payment-details');
+  const editCzkCount = document.getElementById('edit-czk-passengers-count');
+  const editCzkPrice = document.getElementById('edit-czk-price-per-person');
+  const editCzkAmount = document.getElementById('edit-czk-amount');
+  const editCzkRate = document.getElementById('edit-czk-rate');
+  const editCzkEur = document.getElementById('edit-czk-eur-amount');
+  const editCzkGroup = document.getElementById('edit-czk-payment-group');
+
+  const hasCzk = !!trip.hasCzkPayment || (trip.czkAmount > 0);
+  if (editToggleCzk) editToggleCzk.checked = hasCzk;
+  if (editCzkDetails) editCzkDetails.style.display = hasCzk ? 'block' : 'none';
+  if (editCzkCount) editCzkCount.value = trip.czkPassengers || 1;
+  if (editCzkPrice) editCzkPrice.value = trip.czkPricePerPerson !== undefined ? trip.czkPricePerPerson : 200;
+  if (editCzkAmount) editCzkAmount.value = trip.czkAmount !== undefined ? trip.czkAmount : (hasCzk ? ((trip.czkPassengers || 1) * (trip.czkPricePerPerson || 200)) : 200);
+  if (editCzkRate) editCzkRate.value = trip.czkRate !== undefined ? trip.czkRate : '25.00';
+  if (editCzkEur) {
+    const rate = trip.czkRate || 25.00;
+    const czk = trip.czkAmount !== undefined ? trip.czkAmount : 200;
+    editCzkEur.value = (trip.czkEurAmount !== undefined ? trip.czkEurAmount : (czk / rate)).toFixed(2);
+  }
+  if (editCzkGroup) {
+    editCzkGroup.style.opacity = isNoPass ? '0.4' : '1';
+    editCzkGroup.style.pointerEvents = isNoPass ? 'none' : 'auto';
+  }
+
   function calcEditFare() {
     if (toggleNoPass && toggleNoPass.checked) {
       if (inputTotal) inputTotal.value = '0.00';
@@ -2109,6 +2274,13 @@ function openEditTrip(tripId, docId) {
       const dCount = parseInt(inputDiscCount ? inputDiscCount.value : 0) || 0;
       const dPrice = parseFloat(inputDiscPrice ? inputDiscPrice.value : 0) || 0;
       sum += dCount * dPrice;
+    }
+    if (editToggleCzk && editToggleCzk.checked) {
+      const czkRate = parseFloat(editCzkRate ? editCzkRate.value : 25) || 25.00;
+      const czkVal = parseFloat(editCzkAmount ? editCzkAmount.value : 0) || 0;
+      const czkEurVal = parseFloat((czkVal / czkRate).toFixed(2));
+      if (editCzkEur) editCzkEur.value = czkEurVal.toFixed(2);
+      sum += czkEurVal;
     }
     if (inputTotal) inputTotal.value = sum.toFixed(2);
   }
@@ -2232,6 +2404,28 @@ async function saveEditedTrip() {
     }
   }
 
+  // CZK payment in edit modal
+  let hasCzkPayment = false;
+  let czkPassengers = 0;
+  let czkPricePerPerson = 200;
+  let czkAmount = 0;
+  let czkRate = 25.00;
+  let czkEurAmount = 0.00;
+  if (!isNoPass) {
+    const editToggleCzk = document.getElementById('edit-toggle-czk-payment');
+    hasCzkPayment = editToggleCzk ? editToggleCzk.checked : false;
+    if (hasCzkPayment) {
+      czkPassengers = Math.max(1, parseInt(document.getElementById('edit-czk-passengers-count')?.value) || 1);
+      czkPricePerPerson = Math.max(0, parseFloat(document.getElementById('edit-czk-price-per-person')?.value) || 200);
+      czkRate = Math.max(0.1, parseFloat(document.getElementById('edit-czk-rate')?.value) || 25.00);
+      const typedCzk = parseFloat(document.getElementById('edit-czk-amount')?.value);
+      czkAmount = isNaN(typedCzk) ? (czkPassengers * czkPricePerPerson) : Math.max(0, typedCzk);
+      czkEurAmount = parseFloat((czkAmount / czkRate).toFixed(2));
+      totalFare = parseFloat((totalFare + czkEurAmount).toFixed(2));
+      totalCount += czkPassengers;
+    }
+  }
+
   const updatedTrip = {
     id: tripId,
     type: 'trip',
@@ -2253,6 +2447,12 @@ async function saveEditedTrip() {
     hasCashPayment: hasCashPayment,
     cashPassengers: cashPassengers,
     cashAmount: cashAmount,
+    hasCzkPayment: hasCzkPayment,
+    czkPassengers: czkPassengers,
+    czkPricePerPerson: czkPricePerPerson,
+    czkAmount: czkAmount,
+    czkRate: czkRate,
+    czkEurAmount: czkEurAmount,
     totalPassengers: totalCount,
     totalFare: totalFare,
     paidPassengers: (state.trips.find(t => t.id === tripId || (docId && t.docId === docId))?.paidPassengers) || []
@@ -2399,6 +2599,13 @@ function initEditModals() {
       const dPrice = parseFloat(inputDiscPrice ? inputDiscPrice.value : 0) || 0;
       sum += dCount * dPrice;
     }
+    if (editToggleCzk && editToggleCzk.checked) {
+      const czkRate = parseFloat(editCzkRate ? editCzkRate.value : 25) || 25.00;
+      const czkVal = parseFloat(editCzkAmount ? editCzkAmount.value : 0) || 0;
+      const czkEurVal = parseFloat((czkVal / czkRate).toFixed(2));
+      if (editCzkEur) editCzkEur.value = czkEurVal.toFixed(2);
+      sum += czkEurVal;
+    }
     if (inputTotal) inputTotal.value = sum.toFixed(2);
   }
 
@@ -2465,6 +2672,14 @@ function initEditModals() {
   const editCashCount = document.getElementById('edit-cash-passengers-count');
   const editCashAmount = document.getElementById('edit-cash-amount');
 
+  const editToggleCzk = document.getElementById('edit-toggle-czk-payment');
+  const editCzkDetails = document.getElementById('edit-czk-payment-details');
+  const editCzkCount = document.getElementById('edit-czk-passengers-count');
+  const editCzkPrice = document.getElementById('edit-czk-price-per-person');
+  const editCzkAmount = document.getElementById('edit-czk-amount');
+  const editCzkRate = document.getElementById('edit-czk-rate');
+  const editCzkEur = document.getElementById('edit-czk-eur-amount');
+
   function updateEditCashCalculation(isUserTyping = false) {
     if (!editToggleCash || !editToggleCash.checked) return;
     if (!isUserTyping && editCashAmount) {
@@ -2474,6 +2689,20 @@ function initEditModals() {
       const autoCash = (cCount * farePerPerson).toFixed(2);
       editCashAmount.value = autoCash;
     }
+  }
+
+  function updateEditCzkCalculation(isUserTyping = false) {
+    if (!editToggleCzk || !editToggleCzk.checked) return;
+    const cCount = parseInt(editCzkCount ? editCzkCount.value : 1) || 1;
+    const cPrice = parseFloat(editCzkPrice ? editCzkPrice.value : 200) || 200;
+    const cRate = parseFloat(editCzkRate ? editCzkRate.value : 25) || 25;
+    if (!isUserTyping && editCzkAmount) {
+      editCzkAmount.value = cCount * cPrice;
+    }
+    const cVal = parseFloat(editCzkAmount ? editCzkAmount.value : 0) || 0;
+    const eur = parseFloat((cVal / cRate).toFixed(2));
+    if (editCzkEur) editCzkEur.value = eur.toFixed(2);
+    recalcEditTrip();
   }
 
   if (editToggleCash) {
@@ -2491,6 +2720,30 @@ function initEditModals() {
     });
   }
 
+  if (editToggleCzk) {
+    editToggleCzk.addEventListener('change', () => {
+      if (editCzkDetails) editCzkDetails.style.display = editToggleCzk.checked ? 'block' : 'none';
+      if (editToggleCzk.checked) {
+        updateEditCzkCalculation(false);
+      } else {
+        recalcEditTrip();
+      }
+    });
+  }
+
+  if (editCzkCount) {
+    editCzkCount.addEventListener('input', () => updateEditCzkCalculation(false));
+  }
+  if (editCzkPrice) {
+    editCzkPrice.addEventListener('input', () => updateEditCzkCalculation(false));
+  }
+  if (editCzkAmount) {
+    editCzkAmount.addEventListener('input', () => updateEditCzkCalculation(true));
+  }
+  if (editCzkRate) {
+    editCzkRate.addEventListener('input', () => updateEditCzkCalculation(false));
+  }
+
   if (toggleNoPass) {
     toggleNoPass.addEventListener('change', () => {
       if (passSection) passSection.style.display = toggleNoPass.checked ? 'none' : 'block';
@@ -2498,6 +2751,11 @@ function initEditModals() {
       if (editCashGroup) {
         editCashGroup.style.opacity = toggleNoPass.checked ? '0.4' : '1';
         editCashGroup.style.pointerEvents = toggleNoPass.checked ? 'none' : 'auto';
+      }
+      const editCzkGroup = document.getElementById('edit-czk-payment-group');
+      if (editCzkGroup) {
+        editCzkGroup.style.opacity = toggleNoPass.checked ? '0.4' : '1';
+        editCzkGroup.style.pointerEvents = toggleNoPass.checked ? 'none' : 'auto';
       }
       recalcEditTrip();
     });
@@ -2736,7 +2994,7 @@ function renderFuelTab() {
 }
 
 function getTripPassengerList(item) {
-  if (item.noPassengers || (item.passengers === 0 && !item.hasDiscountPassengers)) {
+  if (item.noPassengers || (item.passengers === 0 && !item.hasDiscountPassengers && !item.hasCzkPayment)) {
     return [];
   }
   const list = [];
@@ -2758,19 +3016,40 @@ function getTripPassengerList(item) {
         price: normalPrice
       });
     }
-    if (item.hasDiscountPassengers && item.discountPassengers > 0) {
-      const discCount = item.discountPassengers;
-      const discPrice = item.discountPrice !== undefined ? item.discountPrice : 5.00;
-      const note = item.discountNote ? ` (${item.discountNote})` : '';
-      for (let j = 0; j < discCount; j++) {
-        list.push({
-          index: normalCount + j,
-          label: `Cestujúci ${normalCount + j + 1}${note}`,
-          price: discPrice
-        });
-      }
-    }
   }
+
+  let curIdx = list.length;
+  if (item.hasDiscountPassengers && item.discountPassengers > 0) {
+    const discCount = item.discountPassengers;
+    const discPrice = item.discountPrice !== undefined ? item.discountPrice : 5.00;
+    const note = item.discountNote ? ` (${item.discountNote})` : '';
+    for (let j = 0; j < discCount; j++) {
+      list.push({
+        index: curIdx + j,
+        label: `Cestujúci ${curIdx + j + 1}${note}`,
+        price: discPrice
+      });
+    }
+    curIdx += discCount;
+  }
+
+  if (item.hasCzkPayment && item.czkPassengers > 0) {
+    const czkCount = item.czkPassengers;
+    const czkPrice = item.czkPricePerPerson !== undefined ? item.czkPricePerPerson : 200;
+    const czkRate = (item.czkRate && item.czkRate > 0) ? item.czkRate : 25.00;
+    const czkPriceEur = parseFloat((czkPrice / czkRate).toFixed(2));
+    for (let k = 0; k < czkCount; k++) {
+      list.push({
+        index: curIdx + k,
+        label: `Cestujúci ${curIdx + k + 1} (${czkPrice} Kč)`,
+        price: czkPriceEur,
+        isCzk: true,
+        czkAmount: czkPrice
+      });
+    }
+    curIdx += czkCount;
+  }
+
   return list;
 }
 
@@ -2892,9 +3171,24 @@ function renderHistory() {
         passengerInfo = `0 ľudí (sám)`;
       } else if (item.individualPrices && item.passengerPrices && item.passengerPrices.length > 0) {
         const pricesStr = item.passengerPrices.map(p => `${(p || 0).toFixed(2)}€`).join(' + ');
-        passengerInfo = `${item.passengerPrices.length} ľudí (${pricesStr})`;
+        let extra = '';
+        if (item.hasCzkPayment && item.czkPassengers > 0) {
+          extra += ` + ${item.czkPassengers}×${item.czkPricePerPerson || 200}Kč`;
+        }
+        passengerInfo = `${totalCount} ľudí (${pricesStr}${extra})`;
       } else if (item.hasDiscountPassengers && item.discountPassengers > 0) {
-        passengerInfo = `${totalCount} ľudí (${item.passengers}×${item.pricePerPerson ? item.pricePerPerson.toFixed(2) : '7.50'}€ + ${item.discountPassengers}×${item.discountPrice ? item.discountPrice.toFixed(2) : ''}€${item.discountNote ? ' • ' + item.discountNote : ''})`;
+        let parts = [];
+        if (item.passengers > 0) parts.push(`${item.passengers}×${item.pricePerPerson ? item.pricePerPerson.toFixed(2) : '7.50'}€`);
+        parts.push(`${item.discountPassengers}×${item.discountPrice ? item.discountPrice.toFixed(2) : ''}€${item.discountNote ? ' • ' + item.discountNote : ''}`);
+        if (item.hasCzkPayment && item.czkPassengers > 0) {
+          parts.push(`${item.czkPassengers}×${item.czkPricePerPerson || 200}Kč`);
+        }
+        passengerInfo = `${totalCount} ľudí (${parts.join(' + ')})`;
+      } else if (item.hasCzkPayment && item.czkPassengers > 0) {
+        let parts = [];
+        if (item.passengers > 0) parts.push(`${item.passengers}×${item.pricePerPerson ? item.pricePerPerson.toFixed(2) : '7.50'}€`);
+        parts.push(`${item.czkPassengers}×${item.czkPricePerPerson || 200}Kč`);
+        passengerInfo = `${totalCount} ľudí (${parts.join(' + ')})`;
       } else if (item.pricePerPerson) {
         passengerInfo = `${item.passengers} ľudí (${item.pricePerPerson.toFixed(2)} €/os.)`;
       }
@@ -2913,6 +3207,14 @@ function renderHistory() {
         : (item.hasCashPayment ? fare : 0);
       if (cashVal > 0 || item.hasCashPayment) {
         cashInfo = `<span style="color: #34D399; font-weight: 600;">💵 ${cashVal.toFixed(2)} € v hotovosti</span>`;
+      }
+
+      let czkInfo = '';
+      if (item.hasCzkPayment || (item.czkAmount && item.czkAmount > 0)) {
+        const czkVal = item.czkAmount !== undefined ? item.czkAmount : ((item.czkPassengers || 1) * (item.czkPricePerPerson || 200));
+        const rate = item.czkRate || 25.00;
+        const czkEurVal = item.czkEurAmount !== undefined ? item.czkEurAmount : parseFloat((czkVal / rate).toFixed(2));
+        czkInfo = `<span style="color: #FBBF24; font-weight: 600;">💱 ${czkVal} CZK (${czkEurVal.toFixed(2)} €)</span>`;
       }
 
       // Platby pasažierov na účet (Fajky)
@@ -2974,6 +3276,7 @@ function renderHistory() {
                 <span>👥 ${passengerInfo}</span>
                 ${fuelInfo}
                 ${cashInfo}
+                ${czkInfo}
               </div>
             </div>
             <div class="trip-right">
@@ -3028,6 +3331,8 @@ function renderStats() {
   let totalTripsLiters = 0;
   let tripsWithFuel = 0;
   let sumTripConsumption = 0;
+  let totalCzk = 0;
+  let totalCzkEur = 0;
 
   trips.forEach(t => {
     totalIncome += (t.totalFare || t.netProfit || 0);
@@ -3041,6 +3346,12 @@ function renderStats() {
     if (t.fuelConsumption && t.fuelConsumption > 0) {
       sumTripConsumption += t.fuelConsumption;
       tripsWithFuel++;
+    }
+    if (t.hasCzkPayment || (t.czkAmount && t.czkAmount > 0)) {
+      const czkVal = parseFloat(t.czkAmount) || 0;
+      totalCzk += czkVal;
+      const rate = parseFloat(t.czkRate) || 25.00;
+      totalCzkEur += (t.czkEurAmount !== undefined ? parseFloat(t.czkEurAmount) : (czkVal / rate));
     }
   });
 
@@ -3098,6 +3409,15 @@ function renderStats() {
   if (elAvgFuelPrice) elAvgFuelPrice.textContent = `${avgFuelPrice.toFixed(3)} €/l`;
   if (elTotalTripsLiters) elTotalTripsLiters.textContent = `${totalTripsLiters.toFixed(1)} l`;
   if (elAvgTripConsumption) elAvgTripConsumption.textContent = `${avgTripConsumption.toFixed(1)} l/100km`;
+
+  const elTotalCzk = document.getElementById('stat-total-czk');
+  const elTotalCzkEur = document.getElementById('stat-total-czk-eur');
+  if (elTotalCzk) {
+    elTotalCzk.textContent = `${Math.round(totalCzk).toLocaleString('sk-SK')} CZK`;
+  }
+  if (elTotalCzkEur) {
+    elTotalCzkEur.textContent = `≈ ${totalCzkEur.toFixed(2)} €`;
+  }
 
   const pendingTransfer = getPendingTransferAmount();
   const elPendingTransfer = document.getElementById('stat-pending-transfer');

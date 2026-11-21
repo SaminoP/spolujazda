@@ -542,6 +542,7 @@ body {
 .font-bold { font-weight: 800; }
 .font-green { color: var(--accent-emerald-light); }
 .font-blue { color: var(--accent-blue-light); }
+.font-amber { color: #FBBF24; }
 
 .input-unit {
   position: absolute;
@@ -683,6 +684,7 @@ body {
 
 .option-row-title--green { color: #34D399; }
 .option-row-title--blue { color: #38BDF8; }
+.option-row-title--amber { color: #FBBF24; }
 
 .option-row-subtitle {
   font-size: 11px;
@@ -735,6 +737,11 @@ body {
 .toggle-checkbox:checked + .toggle-switch--green {
   background: var(--accent-emerald);
   border-color: rgba(16, 185, 129, 0.5);
+}
+
+.toggle-checkbox:checked + .toggle-switch--amber {
+  background: #F59E0B;
+  border-color: rgba(245, 158, 11, 0.5);
 }
 
 .toggle-checkbox:checked + .toggle-switch::after {

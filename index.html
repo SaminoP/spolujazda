@@ -247,6 +247,72 @@
             </div>
           </div>
 
+          <!-- Voľba: Platba v CZK -->
+          <div class="option-row" id="czk-payment-group">
+            <label class="toggle-label toggle-label--amber" for="toggle-czk-payment">
+              <div class="option-row-text">
+                <span class="option-row-title option-row-title--amber">💱 Platba v českých korunách (CZK)</span>
+                <span class="option-row-subtitle">Prepočet na EUR a evidencia v CZK</span>
+              </div>
+              <input type="checkbox" id="toggle-czk-payment" class="toggle-checkbox">
+              <span class="toggle-switch toggle-switch--amber"></span>
+            </label>
+
+            <!-- Podrobnosti CZK -->
+            <div id="czk-payment-details" class="option-subdetails" style="display: none;">
+              <div class="grid-2">
+                <div class="form-group" id="czk-passengers-count-wrapper">
+                  <label class="form-label" for="czk-passengers-count">Počet ľudí v CZK</label>
+                  <div class="input-wrapper">
+                    <input type="number" id="czk-passengers-count" class="input-field" min="1" max="8" value="1">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="czk-price-per-person">Suma / osoba (CZK)</label>
+                  <div class="input-wrapper">
+                    <input type="number" id="czk-price-per-person" class="input-field" step="10" min="0" value="200">
+                    <span class="input-unit">Kč</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid-2 mt-8">
+                <div class="form-group">
+                  <label class="form-label" for="czk-amount">
+                    <span>Celkom v CZK</span>
+                    <span class="form-subtext">⚡ auto</span>
+                  </label>
+                  <div class="input-wrapper">
+                    <input type="number" id="czk-amount" class="input-field font-bold font-amber" step="10" min="0" value="200">
+                    <span class="input-unit">Kč</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="czk-rate">Kurz CZK / EUR</label>
+                  <div class="input-wrapper">
+                    <input type="number" id="czk-rate" class="input-field" step="0.1" min="1" value="25.00">
+                    <span class="input-unit">kurz</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group mt-8">
+                <label class="form-label" for="czk-eur-amount">
+                  <span>Prepočet na EUR</span>
+                  <span class="form-subtext">pripočíta sa k zisku</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="number" id="czk-eur-amount" class="input-field input-readonly font-bold font-green" value="8.00" readonly tabindex="-1">
+                  <span class="input-unit">€</span>
+                </div>
+              </div>
+
+              <div class="option-tip">
+                💡 Tip: Suma v CZK sa automaticky prepočíta kurzom na EUR a pripočíta k zisku.
+              </div>
+            </div>
+          </div>
+
           <!-- Voľba: Individuálne ceny -->
           <div class="option-row" id="toggle-individual-prices-wrapper">
             <label class="toggle-label toggle-label--blue" for="toggle-individual-prices">
@@ -593,6 +659,16 @@
           <span class="stat-box-label">Priem. spotreba</span>
           <span id="stat-avg-trip-consumption" class="stat-box-value">0.0 l</span>
         </div>
+        <div class="stat-box" style="grid-column: span 2; display: flex; flex-direction: row; justify-content: space-between; align-items: center; border-color: rgba(251, 191, 36, 0.25); background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(245, 158, 11, 0.03) 100%);">
+          <div>
+            <span class="stat-box-label" style="color: #FBBF24;">💱 Celkovo v CZK</span>
+            <span id="stat-total-czk" class="stat-box-value" style="color: #FBBF24; font-size: 20px;">0 CZK</span>
+          </div>
+          <div style="text-align: right;">
+            <span class="stat-box-label">Prepočet na EUR</span>
+            <span id="stat-total-czk-eur" class="stat-box-value" style="font-size: 16px; color: var(--text-secondary);">≈ 0.00 €</span>
+          </div>
+        </div>
       </div>
 
       <!-- Backup / Restore Card -->
@@ -861,6 +937,67 @@ service cloud.firestore {
                   <input type="number" id="edit-cash-amount" class="input-field" step="0.5" min="0" placeholder="0.00">
                   <span class="input-unit">€</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Platba v CZK -->
+        <div class="option-row mb-12" id="edit-czk-payment-group">
+          <label class="toggle-label toggle-label--amber" for="edit-toggle-czk-payment">
+            <div class="option-row-text">
+              <span class="option-row-title option-row-title--amber">💱 Platba v českých korunách (CZK)</span>
+              <span class="option-row-subtitle">Prepočet na EUR a evidencia v CZK</span>
+            </div>
+            <input type="checkbox" id="edit-toggle-czk-payment" class="toggle-checkbox">
+            <span class="toggle-switch toggle-switch--amber"></span>
+          </label>
+
+          <div id="edit-czk-payment-details" class="option-subdetails" style="display: none;">
+            <div class="grid-2">
+              <div class="form-group" id="edit-czk-passengers-count-wrapper">
+                <label class="form-label" for="edit-czk-passengers-count">Počet ľudí v CZK</label>
+                <div class="input-wrapper">
+                  <input type="number" id="edit-czk-passengers-count" class="input-field" min="1" max="8" value="1">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="edit-czk-price-per-person">Suma / osoba (CZK)</label>
+                <div class="input-wrapper">
+                  <input type="number" id="edit-czk-price-per-person" class="input-field" step="10" min="0" value="200">
+                  <span class="input-unit">Kč</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2 mt-8">
+              <div class="form-group">
+                <label class="form-label" for="edit-czk-amount">
+                  <span>Celkom v CZK</span>
+                  <span class="form-subtext">⚡ auto</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="number" id="edit-czk-amount" class="input-field font-bold font-amber" step="10" min="0" value="200">
+                  <span class="input-unit">Kč</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="edit-czk-rate">Kurz CZK / EUR</label>
+                <div class="input-wrapper">
+                  <input type="number" id="edit-czk-rate" class="input-field" step="0.1" min="1" value="25.00">
+                  <span class="input-unit">kurz</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group mt-8">
+              <label class="form-label" for="edit-czk-eur-amount">
+                <span>Prepočet na EUR</span>
+                <span class="form-subtext">pripočíta sa k zisku</span>
+              </label>
+              <div class="input-wrapper">
+                <input type="number" id="edit-czk-eur-amount" class="input-field input-readonly font-bold font-green" value="8.00" readonly tabindex="-1">
+                <span class="input-unit">€</span>
               </div>
             </div>
           </div>
