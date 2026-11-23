@@ -146,12 +146,12 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label" for="trip-distance">
+            <label class="form-label">
               <span>Trasa</span>
               <span class="form-subtext">fixná</span>
             </label>
             <div class="input-wrapper">
-              <input type="number" id="trip-distance" class="input-field input-readonly" value="150" readonly tabindex="-1">
+              <input type="number" id="trip-distance" class="input-field input-readonly" value="150" readonly tabindex="-1" inputmode="none">
               <span class="input-unit">km</span>
             </div>
           </div>
@@ -176,7 +176,7 @@
             <div class="form-group">
               <label class="form-label" for="price-per-person">Cena / osoba</label>
               <div class="input-wrapper">
-                <input type="number" id="price-per-person" class="input-field font-bold" value="7.50" min="0" step="0.5">
+                <input type="number" id="price-per-person" class="input-field font-bold" value="7.50" min="0" step="0.5" inputmode="decimal">
                 <span class="input-unit">€</span>
               </div>
               <div class="price-presets mt-6">
@@ -186,12 +186,12 @@
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label" for="total-passenger-fare">
+              <label class="form-label">
                 <span>Spolu od ľudí</span>
                 <span class="form-subtext">⚡ auto</span>
               </label>
               <div class="input-wrapper">
-                <input type="number" id="total-passenger-fare" class="input-field input-readonly font-bold font-green" value="22.50" readonly tabindex="-1">
+                <input type="number" id="total-passenger-fare" class="input-field input-readonly font-bold font-green" value="22.50" readonly tabindex="-1" inputmode="none">
                 <span class="input-unit">€</span>
               </div>
             </div>
@@ -228,15 +228,17 @@
             <div id="cash-payment-details" class="option-subdetails" style="display: none;">
               <div class="grid-2">
                 <div class="form-group" id="cash-passengers-count-wrapper">
-                  <label class="form-label" for="cash-passengers-count">Počet v hotovosti</label>
-                  <div class="input-wrapper">
-                    <input type="number" id="cash-passengers-count" class="input-field" min="1" max="8" value="1">
+                  <label class="form-label">Počet v hotovosti</label>
+                  <div class="mini-stepper">
+                    <button type="button" class="mini-stepper-btn" data-target="cash-passengers-count" data-step="-1">−</button>
+                    <input type="number" id="cash-passengers-count" class="mini-stepper-input" min="1" max="8" value="1" readonly inputmode="none">
+                    <button type="button" class="mini-stepper-btn" data-target="cash-passengers-count" data-step="1">+</button>
                   </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label" for="cash-amount">Suma v hotovosti</label>
                   <div class="input-wrapper">
-                    <input type="number" id="cash-amount" class="input-field" step="0.5" min="0" placeholder="0.00">
+                    <input type="number" id="cash-amount" class="input-field" step="0.5" min="0" placeholder="0.00" inputmode="decimal">
                     <span class="input-unit">€</span>
                   </div>
                 </div>
@@ -262,15 +264,17 @@
             <div id="czk-payment-details" class="option-subdetails" style="display: none;">
               <div class="grid-2">
                 <div class="form-group" id="czk-passengers-count-wrapper">
-                  <label class="form-label" for="czk-passengers-count">Počet ľudí v CZK</label>
-                  <div class="input-wrapper">
-                    <input type="number" id="czk-passengers-count" class="input-field" min="1" max="8" value="1">
+                  <label class="form-label">Počet ľudí v CZK</label>
+                  <div class="mini-stepper">
+                    <button type="button" class="mini-stepper-btn" data-target="czk-passengers-count" data-step="-1">−</button>
+                    <input type="number" id="czk-passengers-count" class="mini-stepper-input" min="1" max="8" value="1" readonly inputmode="none">
+                    <button type="button" class="mini-stepper-btn" data-target="czk-passengers-count" data-step="1">+</button>
                   </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label" for="czk-price-per-person">Suma / osoba (CZK)</label>
                   <div class="input-wrapper">
-                    <input type="number" id="czk-price-per-person" class="input-field" step="10" min="0" value="200">
+                    <input type="number" id="czk-price-per-person" class="input-field" step="10" min="0" value="200" inputmode="numeric">
                     <span class="input-unit">Kč</span>
                   </div>
                 </div>
@@ -283,26 +287,26 @@
                     <span class="form-subtext">⚡ auto</span>
                   </label>
                   <div class="input-wrapper">
-                    <input type="number" id="czk-amount" class="input-field font-bold font-amber" step="10" min="0" value="200">
+                    <input type="number" id="czk-amount" class="input-field font-bold font-amber" step="10" min="0" value="200" inputmode="numeric">
                     <span class="input-unit">Kč</span>
                   </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label" for="czk-rate">Kurz CZK / EUR</label>
                   <div class="input-wrapper">
-                    <input type="number" id="czk-rate" class="input-field" step="0.1" min="1" value="25.00">
+                    <input type="number" id="czk-rate" class="input-field" step="0.1" min="1" value="25.00" inputmode="decimal">
                     <span class="input-unit">kurz</span>
                   </div>
                 </div>
               </div>
 
               <div class="form-group mt-8">
-                <label class="form-label" for="czk-eur-amount">
+                <label class="form-label">
                   <span>Prepočet na EUR</span>
                   <span class="form-subtext">pripočíta sa k zisku</span>
                 </label>
                 <div class="input-wrapper">
-                  <input type="number" id="czk-eur-amount" class="input-field input-readonly font-bold font-green" value="8.00" readonly tabindex="-1">
+                  <input type="number" id="czk-eur-amount" class="input-field input-readonly font-bold font-green" value="8.00" readonly tabindex="-1" inputmode="none">
                   <span class="input-unit">€</span>
                 </div>
               </div>
@@ -349,15 +353,17 @@
             <div id="discount-passengers-container" class="option-subdetails" style="display: none;">
               <div class="grid-2">
                 <div class="form-group">
-                  <label class="form-label" for="discount-passengers-count">Počet ľudí</label>
-                  <div class="input-wrapper">
-                    <input type="number" id="discount-passengers-count" class="input-field" value="1" min="1" max="6">
+                  <label class="form-label">Počet ľudí</label>
+                  <div class="mini-stepper">
+                    <button type="button" class="mini-stepper-btn" data-target="discount-passengers-count" data-step="-1">−</button>
+                    <input type="number" id="discount-passengers-count" class="mini-stepper-input" value="1" min="1" max="6" readonly inputmode="none">
+                    <button type="button" class="mini-stepper-btn" data-target="discount-passengers-count" data-step="1">+</button>
                   </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label" for="discount-price-per-person">Suma / osoba</label>
                   <div class="input-wrapper">
-                    <input type="number" id="discount-price-per-person" class="input-field" value="5.00" min="0" step="0.5">
+                    <input type="number" id="discount-price-per-person" class="input-field" value="5.00" min="0" step="0.5" inputmode="decimal">
                     <span class="input-unit">€</span>
                   </div>
                 </div>
@@ -378,7 +384,7 @@
           <div class="form-group">
             <label class="form-label" for="trip-consumption">Spotreba auta</label>
             <div class="input-wrapper">
-              <input type="number" id="trip-consumption" class="input-field" value="6.5" min="0" step="0.1" placeholder="6.5">
+              <input type="number" id="trip-consumption" class="input-field" value="6.5" min="0" step="0.1" placeholder="6.5" inputmode="decimal">
               <span class="input-unit">l/100km</span>
             </div>
             <div class="price-presets mt-6">
@@ -389,12 +395,12 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label" for="trip-consumed-liters">
+            <label class="form-label">
               <span>Palivo</span>
               <span class="form-subtext">⚡ auto</span>
             </label>
             <div class="input-wrapper">
-              <input type="number" id="trip-consumed-liters" class="input-field input-readonly" value="9.75" readonly tabindex="-1">
+              <input type="number" id="trip-consumed-liters" class="input-field input-readonly" value="9.75" readonly tabindex="-1" inputmode="none">
               <span class="input-unit">l</span>
             </div>
           </div>
@@ -446,14 +452,14 @@
           <div class="form-group">
             <label class="form-label" for="refuel-total-price">Suma spolu</label>
             <div class="input-wrapper">
-              <input type="number" id="refuel-total-price" class="input-field font-bold font-blue" placeholder="napr. 45" min="0" step="0.5">
+              <input type="number" id="refuel-total-price" class="input-field font-bold font-blue" placeholder="napr. 45" min="0" step="0.5" inputmode="decimal">
               <span class="input-unit">€</span>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label" for="refuel-liters">Objem</label>
             <div class="input-wrapper">
-              <input type="number" id="refuel-liters" class="input-field" placeholder="napr. 30" min="0" step="0.1">
+              <input type="number" id="refuel-liters" class="input-field" placeholder="napr. 30" min="0" step="0.1" inputmode="decimal">
               <span class="input-unit">l</span>
             </div>
           </div>
@@ -470,7 +476,7 @@
           <div class="form-group">
             <label class="form-label" for="refuel-price-per-l">Cena za liter</label>
             <div class="input-wrapper">
-              <input type="number" id="refuel-price-per-l" class="input-field" placeholder="1.55" min="0" step="0.01">
+              <input type="number" id="refuel-price-per-l" class="input-field" placeholder="1.55" min="0" step="0.01" inputmode="decimal">
               <span class="input-unit">€/l</span>
             </div>
           </div>
@@ -487,7 +493,7 @@
           <div class="form-group">
             <label class="form-label" for="refuel-odometer">Tachometer</label>
             <div class="input-wrapper">
-              <input type="number" id="refuel-odometer" class="input-field" placeholder="km (voliteľné)">
+              <input type="number" id="refuel-odometer" class="input-field" placeholder="km (voliteľné)" inputmode="numeric">
               <span class="input-unit">km</span>
             </div>
           </div>
@@ -793,9 +799,9 @@ service cloud.firestore {
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label" for="edit-trip-distance">Vzdialenosť</label>
+            <label class="form-label">Vzdialenosť</label>
             <div class="input-wrapper">
-              <input type="number" id="edit-trip-distance" class="input-field input-readonly" value="150" readonly tabindex="-1">
+              <input type="number" id="edit-trip-distance" class="input-field input-readonly" value="150" readonly tabindex="-1" inputmode="none">
               <span class="input-unit">km</span>
             </div>
           </div>
@@ -805,17 +811,17 @@ service cloud.firestore {
           <div class="form-group">
             <label class="form-label" for="edit-trip-consumption">Spotreba</label>
             <div class="input-wrapper">
-              <input type="number" id="edit-trip-consumption" class="input-field" min="0" step="0.1" placeholder="6.5">
+              <input type="number" id="edit-trip-consumption" class="input-field" min="0" step="0.1" placeholder="6.5" inputmode="decimal">
               <span class="input-unit">l/100km</span>
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label" for="edit-trip-consumed-liters">
+            <label class="form-label">
               <span>Palivo</span>
               <span class="form-subtext">⚡ auto</span>
             </label>
             <div class="input-wrapper">
-              <input type="number" id="edit-trip-consumed-liters" class="input-field input-readonly" readonly tabindex="-1">
+              <input type="number" id="edit-trip-consumed-liters" class="input-field input-readonly" readonly tabindex="-1" inputmode="none">
               <span class="input-unit">l</span>
             </div>
           </div>
@@ -847,15 +853,17 @@ service cloud.firestore {
           <!-- Jednotná cena – grid s počtom a cenou -->
           <div id="edit-uniform-price-section" class="grid-2 mb-12">
             <div class="form-group">
-              <label class="form-label" for="edit-trip-passengers">Pasažieri</label>
-              <div class="input-wrapper">
-                <input type="number" id="edit-trip-passengers" class="input-field" min="0" max="8" value="3">
+              <label class="form-label">Pasažieri</label>
+              <div class="mini-stepper">
+                <button type="button" class="mini-stepper-btn" data-target="edit-trip-passengers" data-step="-1">−</button>
+                <input type="number" id="edit-trip-passengers" class="mini-stepper-input" min="0" max="8" value="3" readonly inputmode="none">
+                <button type="button" class="mini-stepper-btn" data-target="edit-trip-passengers" data-step="1">+</button>
               </div>
             </div>
             <div class="form-group">
               <label class="form-label" for="edit-trip-price-person">Cena / osoba</label>
               <div class="input-wrapper">
-                <input type="number" id="edit-trip-price-person" class="input-field" min="0" step="0.5" value="7.50">
+                <input type="number" id="edit-trip-price-person" class="input-field" min="0" step="0.5" value="7.50" inputmode="decimal">
                 <span class="input-unit">€</span>
               </div>
             </div>
@@ -865,8 +873,10 @@ service cloud.firestore {
           <div id="edit-individual-prices-section" class="edit-individual-prices-section mb-12" style="display:none;">
             <div class="form-group mb-8">
               <label class="form-label">Počet pasažierov</label>
-              <div class="input-wrapper input-wrapper--narrow">
-                <input type="number" id="edit-individual-passenger-count" class="input-field" min="1" max="8" value="3">
+              <div class="mini-stepper" style="max-width: 140px;">
+                <button type="button" class="mini-stepper-btn" data-target="edit-individual-passenger-count" data-step="-1">−</button>
+                <input type="number" id="edit-individual-passenger-count" class="mini-stepper-input" min="1" max="8" value="3" readonly inputmode="none">
+                <button type="button" class="mini-stepper-btn" data-target="edit-individual-passenger-count" data-step="1">+</button>
               </div>
             </div>
             <div id="edit-individual-price-rows"></div>
@@ -889,15 +899,17 @@ service cloud.firestore {
             <div id="edit-discount-container" class="option-subdetails" style="display: none;">
               <div class="grid-2">
                 <div class="form-group">
-                  <label class="form-label" for="edit-discount-count">Počet ľudí</label>
-                  <div class="input-wrapper">
-                    <input type="number" id="edit-discount-count" class="input-field" value="1" min="1" max="6">
+                  <label class="form-label">Počet ľudí</label>
+                  <div class="mini-stepper">
+                    <button type="button" class="mini-stepper-btn" data-target="edit-discount-count" data-step="-1">−</button>
+                    <input type="number" id="edit-discount-count" class="mini-stepper-input" value="1" min="1" max="6" readonly inputmode="none">
+                    <button type="button" class="mini-stepper-btn" data-target="edit-discount-count" data-step="1">+</button>
                   </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label" for="edit-discount-price">Suma / osoba</label>
                   <div class="input-wrapper">
-                    <input type="number" id="edit-discount-price" class="input-field" value="5.00" min="0" step="0.5">
+                    <input type="number" id="edit-discount-price" class="input-field" value="5.00" min="0" step="0.5" inputmode="decimal">
                     <span class="input-unit">€</span>
                   </div>
                 </div>
@@ -926,15 +938,17 @@ service cloud.firestore {
           <div id="edit-cash-payment-details" class="option-subdetails" style="display: none;">
             <div class="grid-2">
               <div class="form-group">
-                <label class="form-label" for="edit-cash-passengers-count">Počet v hotovosti</label>
-                <div class="input-wrapper">
-                  <input type="number" id="edit-cash-passengers-count" class="input-field" min="1" max="8" value="1">
+                <label class="form-label">Počet v hotovosti</label>
+                <div class="mini-stepper">
+                  <button type="button" class="mini-stepper-btn" data-target="edit-cash-passengers-count" data-step="-1">−</button>
+                  <input type="number" id="edit-cash-passengers-count" class="mini-stepper-input" min="1" max="8" value="1" readonly inputmode="none">
+                  <button type="button" class="mini-stepper-btn" data-target="edit-cash-passengers-count" data-step="1">+</button>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label" for="edit-cash-amount">Suma v hotovosti</label>
                 <div class="input-wrapper">
-                  <input type="number" id="edit-cash-amount" class="input-field" step="0.5" min="0" placeholder="0.00">
+                  <input type="number" id="edit-cash-amount" class="input-field" step="0.5" min="0" placeholder="0.00" inputmode="decimal">
                   <span class="input-unit">€</span>
                 </div>
               </div>
@@ -956,15 +970,17 @@ service cloud.firestore {
           <div id="edit-czk-payment-details" class="option-subdetails" style="display: none;">
             <div class="grid-2">
               <div class="form-group" id="edit-czk-passengers-count-wrapper">
-                <label class="form-label" for="edit-czk-passengers-count">Počet ľudí v CZK</label>
-                <div class="input-wrapper">
-                  <input type="number" id="edit-czk-passengers-count" class="input-field" min="1" max="8" value="1">
+                <label class="form-label">Počet ľudí v CZK</label>
+                <div class="mini-stepper">
+                  <button type="button" class="mini-stepper-btn" data-target="edit-czk-passengers-count" data-step="-1">−</button>
+                  <input type="number" id="edit-czk-passengers-count" class="mini-stepper-input" min="1" max="8" value="1" readonly inputmode="none">
+                  <button type="button" class="mini-stepper-btn" data-target="edit-czk-passengers-count" data-step="1">+</button>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label" for="edit-czk-price-per-person">Suma / osoba (CZK)</label>
                 <div class="input-wrapper">
-                  <input type="number" id="edit-czk-price-per-person" class="input-field" step="10" min="0" value="200">
+                  <input type="number" id="edit-czk-price-per-person" class="input-field" step="10" min="0" value="200" inputmode="numeric">
                   <span class="input-unit">Kč</span>
                 </div>
               </div>
@@ -977,26 +993,26 @@ service cloud.firestore {
                   <span class="form-subtext">⚡ auto</span>
                 </label>
                 <div class="input-wrapper">
-                  <input type="number" id="edit-czk-amount" class="input-field font-bold font-amber" step="10" min="0" value="200">
+                  <input type="number" id="edit-czk-amount" class="input-field font-bold font-amber" step="10" min="0" value="200" inputmode="numeric">
                   <span class="input-unit">Kč</span>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label" for="edit-czk-rate">Kurz CZK / EUR</label>
                 <div class="input-wrapper">
-                  <input type="number" id="edit-czk-rate" class="input-field" step="0.1" min="1" value="25.00">
+                  <input type="number" id="edit-czk-rate" class="input-field" step="0.1" min="1" value="25.00" inputmode="decimal">
                   <span class="input-unit">kurz</span>
                 </div>
               </div>
             </div>
 
             <div class="form-group mt-8">
-              <label class="form-label" for="edit-czk-eur-amount">
+              <label class="form-label">
                 <span>Prepočet na EUR</span>
                 <span class="form-subtext">pripočíta sa k zisku</span>
               </label>
               <div class="input-wrapper">
-                <input type="number" id="edit-czk-eur-amount" class="input-field input-readonly font-bold font-green" value="8.00" readonly tabindex="-1">
+                <input type="number" id="edit-czk-eur-amount" class="input-field input-readonly font-bold font-green" value="8.00" readonly tabindex="-1" inputmode="none">
                 <span class="input-unit">€</span>
               </div>
             </div>
@@ -1004,12 +1020,12 @@ service cloud.firestore {
         </div>
 
         <div class="form-group mb-14">
-          <label class="form-label" for="edit-trip-total-fare">
+          <label class="form-label">
             <span>Spolu od ľudí</span>
             <span class="form-subtext">⚡ auto</span>
           </label>
           <div class="input-wrapper">
-            <input type="number" id="edit-trip-total-fare" class="input-field input-readonly font-bold font-green" value="22.50" readonly tabindex="-1">
+            <input type="number" id="edit-trip-total-fare" class="input-field input-readonly font-bold font-green" value="22.50" readonly tabindex="-1" inputmode="none">
             <span class="input-unit">€</span>
           </div>
         </div>
@@ -1044,14 +1060,14 @@ service cloud.firestore {
           <div class="form-group">
             <label class="form-label" for="edit-refuel-total-price">Suma celkovo</label>
             <div class="input-wrapper">
-              <input type="number" id="edit-refuel-total-price" class="input-field font-bold font-blue" step="0.01" min="0" placeholder="0.00" required>
+              <input type="number" id="edit-refuel-total-price" class="input-field font-bold font-blue" step="0.01" min="0" placeholder="0.00" required inputmode="decimal">
               <span class="input-unit">€</span>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label" for="edit-refuel-liters">Objem paliva</label>
             <div class="input-wrapper">
-              <input type="number" id="edit-refuel-liters" class="input-field" step="0.01" min="0" placeholder="0.00">
+              <input type="number" id="edit-refuel-liters" class="input-field" step="0.01" min="0" placeholder="0.00" inputmode="decimal">
               <span class="input-unit">l</span>
             </div>
           </div>
@@ -1061,14 +1077,14 @@ service cloud.firestore {
           <div class="form-group">
             <label class="form-label" for="edit-refuel-price-per-l">Cena za liter</label>
             <div class="input-wrapper">
-              <input type="number" id="edit-refuel-price-per-l" class="input-field" step="0.001" min="0" placeholder="0.000">
+              <input type="number" id="edit-refuel-price-per-l" class="input-field" step="0.001" min="0" placeholder="0.000" inputmode="decimal">
               <span class="input-unit">€/l</span>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label" for="edit-refuel-odometer">Tachometer</label>
             <div class="input-wrapper">
-              <input type="number" id="edit-refuel-odometer" class="input-field" placeholder="km">
+              <input type="number" id="edit-refuel-odometer" class="input-field" placeholder="km" inputmode="numeric">
               <span class="input-unit">km</span>
             </div>
           </div>

@@ -1208,9 +1208,57 @@ async function markTransferCompleted() {
 }
 
 // ================= APP LISTENERS =================
+function dismissActiveKeyboard() {
+  const active = document.activeElement;
+  if (active && typeof active.blur === 'function') {
+    active.blur();
+  }
+}
+
 function initEventListeners() {
+  // Dismiss virtual keyboard when tapping anywhere outside an editable input
+  document.addEventListener('pointerdown', (e) => {
+    const active = document.activeElement;
+    if (!active) return;
+    const isEditable = (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') &&
+                       !['button', 'submit', 'checkbox', 'radio', 'file', 'image'].includes(active.type) &&
+                       !active.readOnly && !active.disabled;
+    if (!isEditable) return;
+
+    if (e.target === active || active.contains(e.target)) return;
+
+    const isTargetEditable = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') &&
+                             !['button', 'submit', 'checkbox', 'radio', 'file', 'image'].includes(e.target.type) &&
+                             !e.target.readOnly && !e.target.disabled;
+    if (!isTargetEditable) {
+      active.blur();
+    }
+  }, { passive: true });
+
+  // Mini-steppers (+ and - buttons for count fields)
+  document.querySelectorAll('.mini-stepper-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      dismissActiveKeyboard();
+      const targetId = btn.dataset.target;
+      const step = parseInt(btn.dataset.step) || 1;
+      const inp = document.getElementById(targetId);
+      if (!inp) return;
+      const min = inp.min !== '' ? parseInt(inp.min) : 0;
+      const max = inp.max !== '' ? parseInt(inp.max) : 99;
+      const cur = parseInt(inp.value) || 0;
+      const next = Math.max(min, Math.min(max, cur + step));
+      if (next !== cur) {
+        inp.value = next;
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+        inp.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+  });
+
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
+      dismissActiveKeyboard();
       const tabName = btn.dataset.tab;
       switchTab(tabName);
     });
@@ -1218,6 +1266,7 @@ function initEventListeners() {
 
   historyFilterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
+      dismissActiveKeyboard();
       historyFilterBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.historyFilter = btn.dataset.historyFilter;
@@ -1227,6 +1276,7 @@ function initEventListeners() {
 
   segmentBtns.forEach(btn => {
     btn.addEventListener('click', () => {
+      dismissActiveKeyboard();
       segmentBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const routeKey = btn.dataset.route;
@@ -1277,6 +1327,7 @@ function initEventListeners() {
     // Attach preset button listeners
     container.querySelectorAll('.indiv-preset-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        dismissActiveKeyboard();
         const idx = parseInt(e.target.dataset.idx);
         const price = parseFloat(e.target.dataset.price);
         state.passengerPrices[idx] = price;
@@ -1293,6 +1344,7 @@ function initEventListeners() {
   document.querySelectorAll('.price-preset-btn[data-price]').forEach(btn => {
     if (btn.classList.contains('indiv-preset-btn')) return; // handled dynamically
     btn.addEventListener('click', () => {
+      dismissActiveKeyboard();
       const price = parseFloat(btn.dataset.price);
       state.pricePerPerson = price;
       if (inputPricePerPerson) inputPricePerPerson.value = price.toFixed(2);
@@ -1335,6 +1387,7 @@ function initEventListeners() {
 
   if (toggleNoPassengers) {
     toggleNoPassengers.addEventListener('change', (e) => {
+      dismissActiveKeyboard();
       state.noPassengers = e.target.checked;
 
       const cashGroup = document.getElementById('cash-payment-group');
@@ -1398,6 +1451,7 @@ function initEventListeners() {
 
   if (toggleIndividualPrices) {
     toggleIndividualPrices.addEventListener('change', (e) => {
+      dismissActiveKeyboard();
       if (state.noPassengers) { e.target.checked = false; return; }
       state.individualPrices = e.target.checked;
       if (uniformPriceContainer) uniformPriceContainer.style.display = state.individualPrices ? 'none' : '';
@@ -1411,6 +1465,7 @@ function initEventListeners() {
   }
 
   btnMinus.addEventListener('click', () => {
+    dismissActiveKeyboard();
     if (state.noPassengers) return;
     const minPass = (state.hasDiscountPassengers || state.hasCzkPayment) ? 0 : 1;
     if (state.passengers > minPass) {
@@ -1425,6 +1480,7 @@ function initEventListeners() {
   });
 
   btnPlus.addEventListener('click', () => {
+    dismissActiveKeyboard();
     if (state.noPassengers) return;
     if (state.passengers < 8) {
       state.passengers++;
@@ -1445,6 +1501,7 @@ function initEventListeners() {
 
   if (toggleDiscount) {
     toggleDiscount.addEventListener('change', (e) => {
+      dismissActiveKeyboard();
       if (state.noPassengers) return;
       state.hasDiscountPassengers = e.target.checked;
       if (discountContainer) {
@@ -1495,6 +1552,7 @@ function initEventListeners() {
 
   if (toggleCashPayment) {
     toggleCashPayment.addEventListener('change', (e) => {
+      dismissActiveKeyboard();
       state.hasCashPayment = e.target.checked;
       if (cashPaymentDetails) {
         cashPaymentDetails.style.display = state.hasCashPayment ? 'block' : 'none';
@@ -1547,6 +1605,7 @@ function initEventListeners() {
 
   if (toggleCzkPayment) {
     toggleCzkPayment.addEventListener('change', (e) => {
+      dismissActiveKeyboard();
       state.hasCzkPayment = e.target.checked;
       if (czkPaymentDetails) {
         czkPaymentDetails.style.display = state.hasCzkPayment ? 'block' : 'none';
@@ -1625,14 +1684,21 @@ function initEventListeners() {
 
   consumptionPresetBtns.forEach(btn => {
     btn.addEventListener('click', () => {
+      dismissActiveKeyboard();
       const consumption = parseFloat(btn.dataset.consumption);
       if (inputTripConsumption) inputTripConsumption.value = consumption.toFixed(1);
       updateTripConsumption();
     });
   });
 
-  btnSaveTrip.addEventListener('click', saveTrip);
-  btnResetTrip.addEventListener('click', resetTripForm);
+  btnSaveTrip.addEventListener('click', () => {
+    dismissActiveKeyboard();
+    saveTrip();
+  });
+  btnResetTrip.addEventListener('click', () => {
+    dismissActiveKeyboard();
+    resetTripForm();
+  });
 
   // Auto-calculate refuel
   inputRefuelTotalPrice.addEventListener('input', () => {
@@ -2620,7 +2686,7 @@ function initEditModals() {
       <div class="passenger-price-row">
         <label class="passenger-price-label">🧑 Cestujúci ${idx + 1}</label>
         <div class="input-wrapper" style="max-width: 130px;">
-          <input type="number" class="input-field edit-individual-price-input" data-idx="${idx}" value="${p.toFixed(2)}" min="0" step="0.5">
+          <input type="number" class="input-field edit-individual-price-input" data-idx="${idx}" value="${p.toFixed(2)}" min="0" step="0.5" inputmode="decimal">
           <span class="input-unit">€</span>
         </div>
       </div>
@@ -2633,6 +2699,7 @@ function initEditModals() {
 
   if (toggleIndivEdit) {
     toggleIndivEdit.addEventListener('change', () => {
+      dismissActiveKeyboard();
       const isOn = toggleIndivEdit.checked;
       if (uniformEditSection) uniformEditSection.style.display = isOn ? 'none' : '';
       if (indivEditSection) indivEditSection.style.display = isOn ? 'block' : 'none';
@@ -2647,6 +2714,7 @@ function initEditModals() {
 
   if (editIndivCount) {
     editIndivCount.addEventListener('change', () => {
+      dismissActiveKeyboard();
       const count = Math.min(8, Math.max(1, parseInt(editIndivCount.value) || 1));
       editIndivCount.value = count;
       renderEditIndividualRows(count);
@@ -2654,14 +2722,21 @@ function initEditModals() {
   }
 
   if (btnCloseTrip && modalTrip) {
-    btnCloseTrip.addEventListener('click', () => modalTrip.classList.remove('open'));
+    btnCloseTrip.addEventListener('click', () => {
+      dismissActiveKeyboard();
+      modalTrip.classList.remove('open');
+    });
     modalTrip.addEventListener('click', (e) => {
-      if (e.target === modalTrip) modalTrip.classList.remove('open');
+      if (e.target === modalTrip) {
+        dismissActiveKeyboard();
+        modalTrip.classList.remove('open');
+      }
     });
   }
 
   routeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
+      dismissActiveKeyboard();
       routeBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
@@ -2707,6 +2782,7 @@ function initEditModals() {
 
   if (editToggleCash) {
     editToggleCash.addEventListener('change', () => {
+      dismissActiveKeyboard();
       if (editCashDetails) editCashDetails.style.display = editToggleCash.checked ? 'block' : 'none';
       if (editToggleCash.checked) {
         updateEditCashCalculation(false);
@@ -2722,6 +2798,7 @@ function initEditModals() {
 
   if (editToggleCzk) {
     editToggleCzk.addEventListener('change', () => {
+      dismissActiveKeyboard();
       if (editCzkDetails) editCzkDetails.style.display = editToggleCzk.checked ? 'block' : 'none';
       if (editToggleCzk.checked) {
         updateEditCzkCalculation(false);
@@ -2746,6 +2823,7 @@ function initEditModals() {
 
   if (toggleNoPass) {
     toggleNoPass.addEventListener('change', () => {
+      dismissActiveKeyboard();
       if (passSection) passSection.style.display = toggleNoPass.checked ? 'none' : 'block';
       const editCashGroup = document.getElementById('edit-cash-payment-group');
       if (editCashGroup) {
@@ -2772,6 +2850,7 @@ function initEditModals() {
 
   if (toggleDisc) {
     toggleDisc.addEventListener('change', () => {
+      dismissActiveKeyboard();
       if (discContainer) discContainer.style.display = toggleDisc.checked ? 'block' : 'none';
       recalcEditTrip();
     });
@@ -2793,7 +2872,10 @@ function initEditModals() {
   }
 
   if (btnSaveTripEdit) {
-    btnSaveTripEdit.addEventListener('click', saveEditedTrip);
+    btnSaveTripEdit.addEventListener('click', () => {
+      dismissActiveKeyboard();
+      saveEditedTrip();
+    });
   }
 
   // Edit Refuel Modal listeners
@@ -2805,9 +2887,15 @@ function initEditModals() {
   const inputRefuelPriceL = document.getElementById('edit-refuel-price-per-l');
 
   if (btnCloseRefuel && modalRefuel) {
-    btnCloseRefuel.addEventListener('click', () => modalRefuel.classList.remove('open'));
+    btnCloseRefuel.addEventListener('click', () => {
+      dismissActiveKeyboard();
+      modalRefuel.classList.remove('open');
+    });
     modalRefuel.addEventListener('click', (e) => {
-      if (e.target === modalRefuel) modalRefuel.classList.remove('open');
+      if (e.target === modalRefuel) {
+        dismissActiveKeyboard();
+        modalRefuel.classList.remove('open');
+      }
     });
   }
 
@@ -2838,7 +2926,10 @@ function initEditModals() {
   }
 
   if (btnSaveRefuelEdit) {
-    btnSaveRefuelEdit.addEventListener('click', saveEditedRefuel);
+    btnSaveRefuelEdit.addEventListener('click', () => {
+      dismissActiveKeyboard();
+      saveEditedRefuel();
+    });
   }
 
   if (btnEditRefuelReceiptTrigger && inputEditRefuelReceipt) {
@@ -3519,11 +3610,11 @@ async function importData(event) {
 }
 
 // Window globally accessible functions for HTML onclick buttons
-window.appDeleteTrip = deleteTrip;
-window.appDeleteRefuel = deleteRefuel;
-window.appEditTrip = openEditTrip;
-window.appEditRefuel = openEditRefuel;
-window.appMarkTransferCompleted = markTransferCompleted;
-window.appViewReceipt = openReceiptModal;
-window.appTogglePassengerPaid = togglePassengerPaid;
-window.appToggleAllPassengersPaid = toggleAllPassengersPaid;
+window.appDeleteTrip = (...args) => { dismissActiveKeyboard(); return deleteTrip(...args); };
+window.appDeleteRefuel = (...args) => { dismissActiveKeyboard(); return deleteRefuel(...args); };
+window.appEditTrip = (...args) => { dismissActiveKeyboard(); return openEditTrip(...args); };
+window.appEditRefuel = (...args) => { dismissActiveKeyboard(); return openEditRefuel(...args); };
+window.appMarkTransferCompleted = (...args) => { dismissActiveKeyboard(); return markTransferCompleted(...args); };
+window.appViewReceipt = (...args) => { dismissActiveKeyboard(); return openReceiptModal(...args); };
+window.appTogglePassengerPaid = (...args) => { dismissActiveKeyboard(); return togglePassengerPaid(...args); };
+window.appToggleAllPassengersPaid = (...args) => { dismissActiveKeyboard(); return toggleAllPassengersPaid(...args); };

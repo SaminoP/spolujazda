@@ -537,6 +537,9 @@ body {
   border-style: solid;
   border-color: rgba(255, 255, 255, 0.05);
   cursor: default;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .font-bold { font-weight: 800; }
@@ -605,6 +608,62 @@ body {
   font-weight: 800;
   color: var(--accent-blue-light);
   font-variant-numeric: tabular-nums;
+}
+
+/* ================= MINI STEPPER COMPONENT ================= */
+.mini-stepper {
+  display: flex;
+  align-items: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+  height: 46px;
+  width: 100%;
+}
+
+.mini-stepper-btn {
+  width: 44px;
+  height: 100%;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.12s ease;
+  flex-shrink: 0;
+}
+
+.mini-stepper-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--accent-blue-light);
+}
+
+.mini-stepper-btn:active {
+  background: var(--gradient-brand);
+  color: #fff;
+}
+
+.mini-stepper-input {
+  flex: 1;
+  text-align: center;
+  border: none !important;
+  background: transparent !important;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 800;
+  padding: 0 !important;
+  margin: 0;
+  box-shadow: none !important;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* ================= PRESET BUTTONS ================= */
