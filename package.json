@@ -1,0 +1,12 @@
+{
+  "name": "spolujazda",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Spolujazda Piešťany ⇄ Brno – PWA + Netlify funkcie pre automatické jazdy a push notifikácie",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "web-push": "^3.6.7"
+  }
+}

@@ -1,27 +1,38 @@
-# 🚗 Spolujazda Piešťany ⇄ Brno (PWA pre iPhone & Web)
+# 🚗 Spolujazda Piešťany ⇄ Brno (PWA)
 
-Moderná aplikácia pre evidenciu nákladov, tankovania a zisku zo spolujázd na trase Piešťany – Brno a späť. Navrhnutá v štýle iOS s podporou offline režimu, synchronizácie cez Google Firebase Cloud a automatického nasadzovania cez GitHub & Netlify.
+Evidencia spolujázd, tankovania a zisku na trase Piešťany ⇄ Brno. Tmavý moderný dizajn, offline-first (`localStorage`), synchronizácia cez Firebase a **automatické jazdy s push notifikáciou** (ako správa z Messengeru).
 
-## 📱 Funkcie aplikácie
+## Funkcie
+- **🧮 Jazda** – smer, dátum, počet pasažierov (0 = idem sám). Každý pasažier má vlastnú kartu: spôsob platby (🏦 účet / 💵 hotovosť / 💱 CZK) a vlastnú sumu. Živý banner s vyzbieranou sumou, rozpis Na účet / Hotovosť / CZK, spotreba auta.
+- **⛽ Tankovanie** – suma, litre, €/l (jedno pole sa dopočíta), stanica, tachometer, platba kartou/z účtu vs. hotovosť, OCR bločku (Tesseract.js).
+- **📋 História** – filtre, fajky „zaplatené" pri každom pasažierovi, úprava a mazanie.
+- **📊 Prehľad** – čistý zisk, prevod na osobný účet (prišlo na účet − tankovanie z účtu − už prevedené), štatistiky, CZK trezor, graf, export/import JSON.
+- **🔔 Automatické jazdy** – napr. nedeľa PN ➔ Brno a piatok Brno ➔ PN o 19:00: jazda sa sama pridá do databázy (podľa poslednej jazdy v rovnakom smere) a príde push notifikácia „Chceš v jazde zmeniť údaje?".
 
-1. **Trasa a fixná vzdialenosť:**
-   - `PN ➔ Brno` (150 km fixne)
-   - `Brno ➔ PN` (150 km fixne)
-2. **Pasažieri a vyzbierané peniaze:**
-   - Štandardný počet pasažierov s automatickým výpočtom sumy (predvolene 7.50 € / osoba)
-   - **Voliteľná možnosť: Ísť bez pasažierov** (0 ľudí, 0 € zisk)
-   - **Voliteľná kolonka pre pasažierov s nižšou sumou** (napr. skoršie vysadenie po trase v Novom Meste, Uherskom Hradišti)
-3. **Evidencia tankovania:**
-   - Samostatná záložka na evidenciu tankovania s automatickým dopočítaním ceny za liter / litrov
-   - Sledovanie stavu tachometra a názvu čerpacej stanice
-4. **História s možnosťou úprav:**
-   - Prehľad jázd aj tankovaní
-   - Možnosť spätnej editácie (`✏️ Upraviť`) pri preklepe v cene, dátume alebo počte pasažierov
-   - Možnosť zmazania záznamov
-5. **Peňaženka a štatistiky:**
-   - Čistý zisk (Vyzbierané od ľudí − Skutočné tankovania)
-   - Štatistika najazdených km, priemerná cena paliva na liter, počet prevezených ľudí
-6. **Autentifikácia a Cloudová synchronizácia:**
-   - Prihlásenie vlastným menom a heslom (testovací účet: `admin` / `admin`)
-   - Google Firebase Firestore pre prístup k vlastným dátam z akéhokoľvek zariadenia v reálnom čase
-   - Automatický lokálny offline režim
+## Architektúra
+| Časť | Kde |
+|---|---|
+| Aplikácia (statické súbory) | `index.html`, `css/`, `js/` |
+| Dáta | localStorage + Firestore `users/{uid}/items`, `users/{uid}/config/{auto,push}` |
+| Prihlásenie | Firebase Auth (meno + heslo, rovnako ako v starej verzii) |
+| Push + automatické jazdy | Netlify funkcie `netlify/functions/auto-rides.mjs` (každých 5 min) a `test-push.mjs` |
+
+Staré dáta (kolekcie `trips`, `refuels`, `transfers`) sa pri prvom prihlásení **automaticky prevedú** do nového formátu (nič sa nemaže). Ručne: Prehľad → Účet a cloud → „Načítať staré dáta". JSON záloha zo starej verzie sa dá importovať tiež.
+
+## Nastavenie push notifikácií (jednorazovo)
+1. **Nahraj zmeny na GitHub** (`git add -A`, `git commit`, `git push`) – Netlify nasadí aplikáciu aj funkcie.
+2. **Služobný účet Firebase:** Firebase konzola → ⚙️ Project settings → *Service accounts* → *Generate new private key* → stiahne sa JSON.
+3. **Netlify → Site configuration → Environment variables** pridaj tri premenné (hodnoty sú v lokálnom súbore `netlify-env.local.txt`, ktorý je v `.gitignore`):
+   - `FIREBASE_SERVICE_ACCOUNT` = celý obsah stiahnutého JSON súboru
+   - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`
+4. V Netlify spusti **Deploys → Trigger deploy → Clear cache and deploy site**. Súbor `netlify-env.local.txt` potom zmaž.
+5. **Firestore pravidlá** (`firestore.rules`) musia byť publikované vo Firebase konzole (Firestore → Rules).
+6. **iPhone:** otvor stránku v Safari → Zdieľať → *Pridať na plochu* → otvor aplikáciu z plochy → prihlás sa → Prehľad → **Zapnúť upozornenia** → **Poslať skúšobnú notifikáciu**. Potom zapni **Pridávať jazdy automaticky**. (Push na iPhone vyžaduje iOS 16.4+ a aplikáciu pridanú na plochu.)
+
+## Lokálne spustenie
+`Spustit-Apku.bat` otvorí aplikáciu v okne Edge (bez service workera a push notifikácií). Plnohodnotne: `npx serve .` a otvoriť `http://localhost:3000`.
+
+## Poznámky
+- Čas automatických jazdy sa berie v časovej zóne zariadenia (predvolene Europe/Bratislava), letný/zimný čas sa rieši automaticky.
+- Funkcia beží každých 5 minút, notifikácia teda príde medzi 19:00 a 19:05.
+- Prihlasovacie meno `admin` s heslom `admin` je verejne uhádnuteľné – zmeň si heslo vo Firebase konzole (Authentication → Users) alebo si vytvor vlastný účet.

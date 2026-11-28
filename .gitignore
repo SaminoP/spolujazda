@@ -6,3 +6,9 @@ Thumbs.db
 
 # Windows shortcuts
 *.lnk
+
+# Tajomstvá (nikdy necommitovať)
+netlify-env.local.txt
+.vapid.tmp
+node_modules/
+.netlify/
